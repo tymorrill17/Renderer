@@ -1,0 +1,6 @@
+.vs/
+bin/
+out/
+build/
+shaders/*.spv
+renderdoc/
