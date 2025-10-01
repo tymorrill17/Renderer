@@ -1,0 +1,11 @@
+.vs/
+bin/
+out/
+build/
+shaders/*.spv
+renderdoc/
+.cache/
+imgui.ini
+compile_flags.txt
+docs/html
+docs/latex
