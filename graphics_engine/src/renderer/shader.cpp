@@ -81,6 +81,12 @@ void ShaderManager::compileShaders() {
 
     // Search the shaders directory for all the .slang files and convert them into modules
     findShaders();
+
+    if (_shaders.size() < 1) {
+        Logger::log("No shaders found in shader directory!");
+        return;
+    }
+
     std::vector<Slang::ComPtr<slang::IModule>> slangModules;
     for (int nShader = 0; nShader < _shaders.size(); nShader++) {
         Slang::ComPtr<slang::IBlob> diagnostic;

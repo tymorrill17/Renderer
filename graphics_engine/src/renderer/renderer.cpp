@@ -18,6 +18,7 @@ Renderer::Renderer(Window& window) :
     _commandPool(&_device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT),
 	_descriptorLayoutBuilder(_device),
 	_descriptorWriter(_device),
+    _shaderManager(),
     _frameNumber(0) {
 
 	_frames.reserve(_swapchain.framesInFlight());

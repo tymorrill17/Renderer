@@ -1,18 +1,40 @@
 #include "renderer/buffer.h"
 #include "renderer/image.h"
+#include "utility/allocator.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
+
+Buffer::Buffer(DeviceMemoryManager* allocator) :
+    _deviceMemoryManager(allocator),
+    _buffer(VK_NULL_HANDLE),
+    _mappedData(nullptr),
+    _bufferSize(0),
+    _instanceCount(0),
+    _instanceSize(0),
+    _alignmentSize(0)
+{}
 
 Buffer::Buffer(DeviceMemoryManager* allocator, size_t instanceSize,
 	uint32_t instanceCount, VkBufferUsageFlags usageFlags,
 	VmaMemoryUsage memoryUsage, size_t minOffsetAlignment) :
 	_deviceMemoryManager(allocator),
 	_buffer(VK_NULL_HANDLE),
-	_mappedData(nullptr),
-	_bufferSize(instanceSize*instanceCount),
-	_instanceCount(instanceCount),
-	_instanceSize(instanceSize),
-    _alignmentSize(findAlignmentSize(_instanceSize, minOffsetAlignment)) {
+	_mappedData(nullptr) {
+
+    create(instanceSize, instanceCount, usageFlags, memoryUsage);
+}
+
+Buffer::~Buffer() {
+    destroy();
+}
+
+void Buffer::create(size_t instanceSize, uint32_t instanceCount, VkBufferUsageFlags usageFlags,
+	VmaMemoryUsage memoryUsage, size_t minOffsetAlignment) {
+
+    _instanceSize = instanceSize;
+    _instanceCount = instanceCount;
+    _bufferSize = _instanceSize * _instanceCount;
+    _alignmentSize = findAlignmentSize(_instanceSize, minOffsetAlignment);
 
 	VkBufferCreateInfo bufferCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -29,10 +51,6 @@ Buffer::Buffer(DeviceMemoryManager* allocator, size_t instanceSize,
 	if (vmaCreateBuffer(_deviceMemoryManager->allocator(), &bufferCreateInfo, &allocationCreateInfo, &_buffer, &_allocation, &_allocationInfo) != VK_SUCCESS) {
         Logger::logError("Failed to create allocated buffer!");
 	}
-}
-
-Buffer::~Buffer() {
-    destroy();
 }
 
 Buffer::Buffer(Buffer&& other) noexcept :

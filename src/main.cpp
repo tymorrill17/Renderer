@@ -1,6 +1,6 @@
 #include "renderer/renderer.h"
 #include "utility/window.h"
-#include "utility/gui.h"
+#include "utility/input_manager.h"
 #include <cstdint>
 
 static const uint32_t APPLICATION_WIDTH = 1920;
@@ -10,11 +10,11 @@ int main (int argc, char *argv[]) {
 
     Window window({APPLICATION_WIDTH, APPLICATION_HEIGHT}, "Renderer");
     Renderer renderer(window);
-
-    static Gui& gui = Gui::getGui();
+    InputManager inputManager(window);
 
     // Main loop
     while (!window.shouldClose()) {
+        inputManager.processInputs();
 
     }
 

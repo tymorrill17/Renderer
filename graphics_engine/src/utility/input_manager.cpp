@@ -4,14 +4,17 @@ InputManager::InputManager(Window& window) :
 	_window(window) {}
 
 void InputManager::processInputs() {
-	static Gui& _gui = Gui::getGui();
-
+#ifdef ENABLE_GUI
+    Gui& gui = Gui::getGui();
+#endif
 	SDL_Event sdl_event;
 	//Handle events on queue
 	while (SDL_PollEvent(&sdl_event) != 0) {
 
 		// Let the gui backend handle its inputs
-		_gui.processInputs(&sdl_event);
+#ifdef ENABLE_GUI
+        gui->processInputs(&sdl_event);
+#endif
 
 		switch (sdl_event.type) {
 	 	case SDL_QUIT: //close the window when user alt-f4s or clicks the X button

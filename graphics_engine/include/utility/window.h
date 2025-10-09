@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "imgui/imgui_impl_sdl2.h"
 #include "vulkan/vulkan_core.h"
 
 // @brief Contains the window that will display the application

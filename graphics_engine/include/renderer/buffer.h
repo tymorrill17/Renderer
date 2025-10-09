@@ -7,6 +7,7 @@
 
 class Buffer : public NonCopyable {
 public:
+    Buffer(DeviceMemoryManager* deviceMemoryManager);
 	Buffer(DeviceMemoryManager* deviceMemoryManager, size_t instanceSize,
 		uint32_t instanceCount, VkBufferUsageFlags usageFlags,
 		VmaMemoryUsage memoryUsage, size_t minOffsetAlignment = 1);
@@ -14,6 +15,10 @@ public:
 
     Buffer(Buffer&& other) noexcept;
     Buffer& operator=(Buffer&& other) noexcept;
+
+    // @brief Create the buffer object.
+    void create(size_t instanceSize, uint32_t instanceCount, VkBufferUsageFlags usageFlags,
+		VmaMemoryUsage memoryUsage, size_t minOffsetAlignment = 1);
 
     // @brief Destroys the buffer object
     void destroy();
