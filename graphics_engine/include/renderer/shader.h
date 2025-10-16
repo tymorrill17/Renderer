@@ -1,9 +1,9 @@
 #pragma once
-#include "NonCopyable.h"
 #include "vulkan/vulkan.h"
 #include "slang/slang.h"
 #include "slang/slang-com-ptr.h"
 #include "device.h"
+#include "vulkan/vulkan_core.h"
 #include <cstdint>
 #include <string>
 #include <array>
@@ -13,51 +13,32 @@
 #include <iostream>
 #include <filesystem>
 
-class ShaderManager : public NonCopyable {
+class ShaderManager {
 public:
-    ShaderManager();
-    ~ShaderManager();
+    void initialize();
 
-    // @brief Recursively search shaders directory for slang files
-    void findShaders();
+    void find_shaders();
+    void compile_shaders();
 
-    // @brief compiles each shader in the program shaders directory
-    void compileShaders();
+    inline const uint32_t* get_shader_code(const std::string& shader_name) { return static_cast<const uint32_t*>(compiled_spirv[shader_name]->getBufferPointer()); }
+    inline uint32_t get_shader_code_length(const std::string& shader_name) { return compiled_spirv[shader_name]->getBufferSize(); }
 
-    // @brief return the compiled shader code associated with shaderName from _compiledShaders
-    inline const uint32_t* getShaderCode(std::string shaderName) { return static_cast<const uint32_t*>(_compiledSPIRV[shaderName]->getBufferPointer()); }
-    inline uint32_t getShaderCodeLength(std::string shaderName) { return _compiledSPIRV[shaderName]->getBufferSize(); }
-
-private:
-    Slang::ComPtr<slang::IGlobalSession> _globalSession;
-    Slang::ComPtr<slang::ISession> _session;
-
-    std::vector<std::string> _shaders;
-    std::map<std::string, Slang::ComPtr<slang::IBlob>> _compiledSPIRV;
+    std::vector<std::string> found_shaders;
+    std::map<std::string, Slang::ComPtr<slang::IBlob>> compiled_spirv;
 };
 
-
-class Shader : public NonCopyable {
+class Shader {
 public:
-	Shader(Device* device, ShaderManager* shaderManager, VkShaderStageFlagBits stageFlag, std::string shader);
-	~Shader();
+    void initialize(Device* device, ShaderManager* shader_manager, VkShaderStageFlagBits stage_flag, const std::string& shader);
+    void cleanup();
 
-    void buildShaderFromFile(std::string filepath);
-    void buildShaderFromCode(std::string shader);
+    void build_shader_from_file(const std::string& filepath);
+    void build_shader_from_code(const std::string& filepath);
 
-	inline VkShaderModule module() const { return _shaderModule; }
-	inline VkShaderStageFlagBits stage() const { return _shaderStageFlag; }
+	static VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shader);
 
-	// @brief Populates a pipeline shader stage create info struct
-	// @param flags - Bit flags to enable in the create info struct
-	// @param shader - Shader module to be added to the pipeline
-	static VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shader);
-
-private:
-	Device* _device;
-    ShaderManager* _shaderManager;
-	VkShaderModule _shaderModule;
-	VkShaderStageFlagBits _shaderStageFlag;
-
-    void readShaderCode(const std::string& filepath);
+    Device* device;
+    ShaderManager* shader_manager;
+    VkShaderModule module;
+    VkShaderStageFlagBits stage;
 };

@@ -2,73 +2,55 @@
 
 // SEMAPHORE --------------------------------------------------------------------------------------------------------------------------
 
-Semaphore::Semaphore(Device* device, VkSemaphoreCreateFlags flags) : _device(device), _flags(flags), _semaphore(VK_NULL_HANDLE) {
-	VkSemaphoreCreateInfo semaphoreInfo{
+void Semaphore::initialize(Device* device, VkSemaphoreCreateFlags flags) {
+
+    this->device = device;
+
+	VkSemaphoreCreateInfo semaphore_info{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 		.pNext = nullptr,
-		.flags = _flags
+		.flags = flags
 	};
-	if (vkCreateSemaphore(_device->handle(), &semaphoreInfo, nullptr, &_semaphore) != VK_SUCCESS) {
+	if (vkCreateSemaphore(device->logical_device, &semaphore_info, nullptr, &handle) != VK_SUCCESS) {
         Logger::logError("Failed to create semaphore!");
 	}
 }
 
-Semaphore::~Semaphore() {
-	vkDestroySemaphore(_device->handle(), _semaphore, nullptr);
-}
-
-Semaphore::Semaphore(Semaphore&& other) noexcept :
-    _device(std::move(other._device)),
-    _semaphore(std::move(other._semaphore)),
-    _flags(std::move(other._flags)) {
-    _device = nullptr;
-    _semaphore = VK_NULL_HANDLE;
-}
-
-Semaphore& Semaphore::operator=(Semaphore&& other) noexcept {
-    if (this != &other) {
-        _device = std::move(other._device);
-        _semaphore = std::move(other._semaphore);
-        _flags = std::move(other._flags);
-        other._device = nullptr;
-        other._semaphore = VK_NULL_HANDLE;
-    }
-    return *this;
+void Semaphore::cleanup() {
+	vkDestroySemaphore(device->logical_device, handle, nullptr);
 }
 
 // FENCE --------------------------------------------------------------------------------------------------------------------------
 
-Fence::Fence(Device* device, VkFenceCreateFlags flags) : _device(device), _flags(flags), _fence(VK_NULL_HANDLE) {
-	VkFenceCreateInfo fenceInfo{
+void Fence::initialize(Device* device, VkFenceCreateFlags flags) {
+
+    this->device = device;
+
+	VkFenceCreateInfo fence_info{
 		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 		.pNext = nullptr,
-		.flags = _flags,
+		.flags = flags,
 	};
-	if (vkCreateFence(_device->handle(), &fenceInfo, nullptr, &_fence) != VK_SUCCESS) {
+	if (vkCreateFence(device->logical_device, &fence_info, nullptr, &handle) != VK_SUCCESS) {
         Logger::logError("Failed to create fence!");
 	}
 }
 
-Fence::~Fence() {
-	vkDestroyFence(_device->handle(), _fence, nullptr);
+void Fence::cleanup() {
+	vkDestroyFence(device->logical_device, handle, nullptr);
 }
 
-Fence::Fence(Fence&& other) noexcept :
-    _device(std::move(other._device)),
-    _fence(std::move(other._fence)),
-    _flags(std::move(other._flags)) {
-    _device = nullptr;
-    _fence = VK_NULL_HANDLE;
+// FRAMESYNC ----------------------------------------------------------------------------------------------------------------------
+
+void FrameSync::initialize(Device* device) {
+    present_semaphore.initialize(device);
+    render_semaphore.initialize(device);
+	render_fence.initialize(device, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
-Fence& Fence::operator=(Fence&& other) noexcept {
-    if (this != &other) {
-        _device = std::move(other._device);
-        _fence = std::move(other._fence);
-        _flags = std::move(other._flags);
-        other._device = nullptr;
-        other._fence = VK_NULL_HANDLE;
-    }
-    return *this;
+void FrameSync::cleanup() {
+    present_semaphore.cleanup();
+    render_semaphore.cleanup();
+    render_fence.cleanup();
 }
 

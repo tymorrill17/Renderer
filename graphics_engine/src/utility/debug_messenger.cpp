@@ -1,35 +1,32 @@
 #include "utility/debug_messenger.h"
 
-DebugMessenger::DebugMessenger(Instance& instance) : instance(instance), debugMessenger(VK_NULL_HANDLE) {
-	if (instance.validationLayersEnabled()) {
+void DebugMessenger::initialize(Instance* instance) {
 
-		// Then set up the debug messenger
-		VkDebugUtilsMessengerCreateInfoEXT debugInfo{};
-		populateDebugMessengerCreateInfo(debugInfo);
+    this->instance = instance;
 
-		// Get the pointer to the extension function
-		auto createFunc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance.handle(), "vkCreateDebugUtilsMessengerEXT");
+    // Then set up the debug messenger
+    VkDebugUtilsMessengerCreateInfoEXT debug_info{};
+    populate_debug_messenger_create_info(debug_info);
 
-		if (!createFunc) {
-            Logger::logError("Debug messenger extension not available!");
-		}
+    // Get the pointer to the extension function
+    auto create_function = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance->handle, "vkCreateDebugUtilsMessengerEXT");
 
-		// Actually create the debug messenger
-		if (createFunc(instance.handle(), &debugInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-            Logger::logError("Failed to create debug messenger!");
-		}
+    if (!create_function) {
+        Logger::logError("Debug messenger extension not available!");
+    }
 
-        std::cout << "Created debug messenger." << std::endl;
-	}
+    // Actually create the debug messenger
+    if (create_function(instance->handle, &debug_info, nullptr, &handle) != VK_SUCCESS) {
+        Logger::logError("Failed to create debug messenger!");
+    }
+
+    Logger::log("Created debug messenger.");
 }
 
-DebugMessenger::~DebugMessenger() {
-	if (instance.validationLayersEnabled()) {
-		// Get the pointer to the extension function
-		auto destroyFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance.handle(), "vkDestroyDebugUtilsMessengerEXT");
-
-		destroyFunc(instance.handle(), debugMessenger, nullptr);
-	}
+void DebugMessenger::cleanup() {
+    // Get the pointer to the extension function
+    auto destroy_function = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance->handle, "vkDestroyDebugUtilsMessengerEXT");
+    destroy_function(instance->handle, handle, nullptr);
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessenger::debugCallback(
@@ -42,8 +39,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessenger::debugCallback(
 	return VK_FALSE;
 }
 
-void DebugMessenger::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-	createInfo = {
+void DebugMessenger::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& create_info) {
+	create_info = {
 		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
 		.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,

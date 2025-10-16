@@ -1,11 +1,10 @@
 #pragma once
-#include "NonCopyable.h"
 #include "vulkan/vulkan.h"
 #include "vma/vk_mem_alloc.h"
 #include "utility/allocator.h"
 
 
-class Buffer : public NonCopyable {
+class BufferOld {
 public:
     Buffer(DeviceMemoryManager* deviceMemoryManager);
 	Buffer(DeviceMemoryManager* deviceMemoryManager, size_t instanceSize,
@@ -16,6 +15,7 @@ public:
     Buffer(Buffer&& other) noexcept;
     Buffer& operator=(Buffer&& other) noexcept;
 
+    // O
     // @brief Create the buffer object.
     void create(size_t instanceSize, uint32_t instanceCount, VkBufferUsageFlags usageFlags,
 		VmaMemoryUsage memoryUsage, size_t minOffsetAlignment = 1);
@@ -63,4 +63,12 @@ private:
 	size_t _alignmentSize; // The device-specific alignment size
 
 	static size_t findAlignmentSize(size_t instanceSize, size_t minOffsetAlignment);
+};
+
+class Buffer {
+public:
+    void initialize(DeviceMemoryManager* device_memory_manager, size_t instance_size,
+		uint32_t instance_count, VkBufferUsageFlags vk_memory_usage,
+		VmaMemoryUsage vma_memory_usage, size_t min_offset_alignment = 1);
+    void cleanup();
 };

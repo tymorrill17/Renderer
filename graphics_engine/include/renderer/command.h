@@ -1,83 +1,47 @@
 #pragma once
 #include "vulkan/vulkan.h"
-#include "NonCopyable.h"
 #include "utility/logger.h"
 #include "renderer/sync.h"
-#include "NonCopyable.h"
 #include "vulkan/vulkan_core.h"
 #include <functional>
 #include <memory>
 
 class Device;
-class Frame;
 
-class CommandPool : public NonCopyable {
+class CommandPool {
 public:
-    CommandPool(Device* device, VkCommandPoolCreateFlags flags);
-    ~CommandPool();
+    void initialize(Device* device, VkCommandPoolCreateFlags flags);
+    void cleanup();
 
-    CommandPool(CommandPool&&) noexcept;
-    CommandPool& operator=(CommandPool&&) noexcept;
+    void reset(VkCommandPoolResetFlags flags = 0U);
 
-	// @brief Resets the command pool. Command buffers are not destroyed, but they are all reset to an initial state
-    void reset(VkCommandPoolResetFlags flags = 0);
-
-    inline VkCommandPool handle() { return _commandPool; }
-
-private:
-    Device* _device;
-	VkCommandPool _commandPool;
+    Device* device;
+    VkCommandPool handle;
 };
 
-class Command : public NonCopyable {
+class Command {
 public:
-	Command(Device* device, CommandPool* commandPool); // Or use an existing command pool
+    virtual void initialize(Device* device, CommandPool* command_pool);
 
-    Command(Command&& other) noexcept;
-    Command& operator=(Command&& other) noexcept;
+    void reset(VkCommandBufferResetFlags flags = 0U);
+    void begin();
+    void end();
+    void submit_to_queue(VkQueue queue, FrameSync* sync);
 
-    // @brief Resets the command buffer
-    void reset(VkCommandBufferResetFlags flags = 0) const;
+    static VkCommandBufferBeginInfo command_buffer_begin_info(VkCommandBufferUsageFlags flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-	// @brief Begins the command buffer. Don't forget to end the command buffer too
-	void begin();
-
-	// @brief Ends the command buffer. This shouldn't be called unless the command buffer has been begun
-	void end();
-
-	// @brief Submits the current command buffer to the specified queue
-	// @param queue - Queue to submit the command buffer to
-	// @param frame - The current frame waiting for rendering. This object contains the sync objects needed to submit properly
-	void submitToQueue(VkQueue queue, Frame& frame);
-
-    inline CommandPool* pool() { return _commandPool; }
-    inline VkCommandBuffer buffer() { return _commandBuffer; }
-
-	// @brief Populates a command buffer begin info struct
-	static VkCommandBufferBeginInfo commandBufferBeginInfo(VkCommandBufferUsageFlags flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-protected:
-    Device* _device;
-    CommandPool* _commandPool;
-	VkCommandBuffer _commandBuffer;
-	bool _inProgress;
-
-    // @brief Allocates a command buffer from the command pool
-    void allocateCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    Device* device;
+    CommandPool* command_pool;
+    VkCommandBuffer buffer;
+    bool in_progress;
 };
 
 class ImmediateCommand : public Command {
 public:
-	ImmediateCommand(Device* device, CommandPool* commandPool); // Or use an existing command pool
+    void initialize(Device* device, CommandPool* command_pool) override;
 
-	inline Fence& fence() { return _submitFence; }
+    void run_command(std::function<void(VkCommandBuffer cmd)>&& function);
 
-	// @brief Immediately submit a command to the graphics queue
-	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
-
-private:
-	Fence _submitFence;
-
-    // Submit the immediate command to the queue
-    void submitToQueue(VkQueue queue);
+    Fence submit_fence;
 };
+

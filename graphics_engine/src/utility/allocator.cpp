@@ -3,17 +3,21 @@
 #include "vma/vk_mem_alloc.h"
 #include "utility/allocator.h"
 
-DeviceMemoryManager::DeviceMemoryManager(Device& device, Instance& instance) : _device(device), _instance(instance) {
-	VmaAllocatorCreateInfo allocatorCreateInfo{
-		.physicalDevice = _device.physicalDevice(),
-		.device = _device.handle(),
-		.instance = _instance.handle()
+void DeviceMemoryManager::initialize(Device* device, Instance* instance) {
+
+    this->device = device;
+    this->instance = instance;
+
+	VmaAllocatorCreateInfo allocator_create_info{
+		.physicalDevice = device->physical_device,
+		.device = device->logical_device,
+		.instance = instance->handle
 	};
-	if (vmaCreateAllocator(&allocatorCreateInfo, &_vmaAllocator) != VK_SUCCESS) {
+	if (vmaCreateAllocator(&allocator_create_info, &allocator) != VK_SUCCESS) {
         Logger::logError("Failed to create the VMA allocator!");
 	}
 }
 
-DeviceMemoryManager::~DeviceMemoryManager() {
-	vmaDestroyAllocator(_vmaAllocator);
+void DeviceMemoryManager::cleanup() {
+	vmaDestroyAllocator(allocator);
 }

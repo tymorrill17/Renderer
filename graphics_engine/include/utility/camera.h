@@ -1,11 +1,10 @@
 #pragma once
 
-#include "NonCopyable.h"
 #include "glm/glm.hpp"
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
-class Camera : public NonCopyable {
+class Camera {
 public:
 	// @brief Sets the projection matrix member to an orthographic projection
 	// @param left - left plane

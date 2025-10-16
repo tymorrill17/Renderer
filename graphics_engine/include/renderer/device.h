@@ -1,55 +1,50 @@
 #pragma once
 #include <vulkan/vulkan.h>
-#include "device.h"
-#include "instance.h"
+#include "renderer/device.h"
+#include "renderer/instance.h"
 #include "utility/window.h"
-#include "queue_family.h"
 #include "vulkan/vulkan_core.h"
 #include <vector>
 #include <string>
+#include <optional>
 #include <set>
 
-class Device : public NonCopyable {
+class QueueFamilyIndices {
 public:
-	Device(Instance& instance, Window& window, const std::vector<const char*>& extensions);
-	~Device();
+    std::optional<uint32_t> graphics_family; // Draw command support
+	std::optional<uint32_t> present_family; // Drawing to surface support
+    std::vector<VkQueueFamilyProperties> queue_family_properties; // Properties of the chosen GPU's queue families
 
-	inline VkPhysicalDevice physicalDevice() { return _physDevice; }
-	inline VkPhysicalDeviceProperties physicalDeviceProperies() { return _physDeviceProperties; }
-	inline VkDevice handle() { return _logicalDevice; }
-	inline QueueFamilyIndices queueFamilyIndices() { return _indices; }
-	inline VkQueue graphicsQueue() { return _graphQueue; }
-	inline VkQueue presentQueue() { return _presQueue; }
+    inline bool complete() { return graphics_family.has_value() && present_family.has_value(); }
+    static QueueFamilyIndices find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR surface);
+};
 
-private:
-    Instance& _instance;
-    Window& _window;
-	VkPhysicalDevice _physDevice; // Representation of the physical GPU
-    VkPhysicalDeviceProperties _physDeviceProperties; // Properties of the chosen GPU
-	VkDevice _logicalDevice; // Logical representation of the physical device that the code can interact with
+class Window;
+class Instance;
 
-	QueueFamilyIndices _indices;
-	VkQueue _graphQueue; // Graphics queue
-	VkQueue _presQueue; // Present queue
+class Device {
+public:
+    void initialize(
+        Instance* instance,
+        Window* window,
+        const std::vector<const char*>* requested_validation_layers,
+        const std::vector<const char*>* requested_extensions
+    );
+    void cleanup();
 
-    VkSurfaceKHR _windowSurface; // Keep track of window surface for deletion
+    static bool check_device_extension_support(VkPhysicalDevice physical_device, const std::vector<const char*>* extensions);
+    static VkPhysicalDevice select_physical_device(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>* device_extensions);
+    static bool device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface, const std::vector<const char*>* device_extensions);
 
-	// @brief Verify that the selected physical device supports the requested extensions
-	// @param physicalDevice - The selected physical device to check
-	// @param extensions - The requested device extensions
-	// @return True if the physical device supports all of extensions. False otherwise
-	static bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice, std::vector<const char*>& extensions);
+    Instance* instance;
+    Window* window;
+    VkPhysicalDevice physical_device;
+    VkDevice logical_device;
 
-	// @brief Queries available physical devices and selects one based on whether or not it supports required device extensions
-	// @param instance - The current active instance of Vulkan
-	// @param surface - The surface which the swapchain will present to
-	// @param requiredExtensions - The device extensions that are required to present images to the screen
-	// @return The selected VkPhysicalDevice object
-	static VkPhysicalDevice selectPhysicalDevice(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>& requiredExtensions);
+    QueueFamilyIndices queue_indices;
+    VkQueue graphics_queue;
+    VkQueue present_queue;
 
-	// @brief Checks whether the selected physical device has swapchain support
-	// @param physicalDevice - The selected physical device to check
-	// @param surface - The surface which the swapchain will present to
-	// @return True if the physical device has swapchain support. False otherwise
-	static bool isDeviceSuitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+    VkSurfaceKHR window_surface;
+
 };

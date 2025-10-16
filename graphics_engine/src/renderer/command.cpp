@@ -1,217 +1,168 @@
 #include "renderer/command.h"
-#include "renderer/frame.h"
+#include "renderer/sync.h"
 #include "vulkan/vulkan_core.h"
 
 // CommandPool --------------------------------------------------------------------------------------------------
 
-CommandPool::CommandPool(Device* device, VkCommandPoolCreateFlags flags) :
-    _device(device),
-    _commandPool(VK_NULL_HANDLE) {
+void CommandPool::initialize(Device* device, VkCommandPoolCreateFlags flags) {
 
-	VkCommandPoolCreateInfo commandPoolCreateInfo{
+    this->device = device;
+
+	VkCommandPoolCreateInfo command_pool_create_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = flags,
-		.queueFamilyIndex = _device->queueFamilyIndices().graphicsFamily.value()
+		.queueFamilyIndex = device->queue_indices.graphics_family.value()
 	};
 
-    if (vkCreateCommandPool(_device->handle(), &commandPoolCreateInfo, nullptr, &_commandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(device->logical_device, &command_pool_create_info, nullptr, &handle) != VK_SUCCESS) {
         Logger::logError("Failed to create command pool!");
 	}
 }
 
-CommandPool::~CommandPool() {
-	vkDestroyCommandPool(_device->handle(), _commandPool, nullptr);
-}
-
-CommandPool::CommandPool(CommandPool&& other) noexcept :
-    _device(other._device),
-    _commandPool(std::move(other._commandPool)) {
-
-    other._device = nullptr;
-    other._commandPool = VK_NULL_HANDLE;
-}
-
-CommandPool& CommandPool::operator=(CommandPool&& other) noexcept {
-    if (this != &other) {
-        _device = std::move(other._device);
-        _commandPool = std::move(other._commandPool);
-        other._device = nullptr;
-        other._commandPool = VK_NULL_HANDLE;
-    }
-    return *this;
+void CommandPool::cleanup() {
+	vkDestroyCommandPool(device->logical_device, handle, nullptr);
 }
 
 void CommandPool::reset(VkCommandPoolResetFlags flags) {
-    vkResetCommandPool(_device->handle(), _commandPool, flags);
+    vkResetCommandPool(device->logical_device, handle, flags);
 }
 
 // Command --------------------------------------------------------------------------------------------------
 
-Command::Command(Device* device, CommandPool* commandPool) :
-	_device(device),
-	_commandPool(commandPool),
-	_commandBuffer(VK_NULL_HANDLE),
-	_inProgress(false) {
+void Command::initialize(Device* device, CommandPool* command_pool) {
 
-	// Now allocate the command buffer
-	allocateCommandBuffer();
-}
+    this->device = device;
+    this->command_pool = command_pool;
+    in_progress = false;
 
-Command::Command(Command&& other) noexcept :
-    _device(other._device),
-    _commandPool(std::move(other._commandPool)),
-    _commandBuffer(std::move(other._commandBuffer)),
-    _inProgress(std::move(other._inProgress)) {
-
-    other._commandPool = nullptr;
-    other._commandBuffer = VK_NULL_HANDLE;
-}
-
-Command& Command::operator=(Command&& other) noexcept {
-    if (this != &other) {
-        _device = std::move(other._device);
-        _commandPool = std::move(other._commandPool);
-        _commandBuffer = std::move(other._commandBuffer);
-        _inProgress = std::move(other._inProgress);
-        other._device = nullptr;
-        other._commandPool = nullptr;
-        other._commandBuffer = VK_NULL_HANDLE;
-    }
-    return *this;
-}
-
-void Command::allocateCommandBuffer(VkCommandBufferLevel level) {
-	VkCommandBufferAllocateInfo allocateInfo{
+	VkCommandBufferAllocateInfo allocate_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.pNext = nullptr,
-		.commandPool = _commandPool->handle(),
-		.level = level,
+		.commandPool = command_pool->handle,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 		.commandBufferCount = 1,
 	};
-	if (vkAllocateCommandBuffers(_device->handle(), &allocateInfo, &_commandBuffer) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(device->logical_device, &allocate_info, &buffer) != VK_SUCCESS) {
         Logger::logError("Failed to allocate command buffer!");
 	}
 }
 
-VkCommandBufferBeginInfo Command::commandBufferBeginInfo(VkCommandBufferUsageFlags flags) {
-	VkCommandBufferBeginInfo beginInfo{
+VkCommandBufferBeginInfo Command::command_buffer_begin_info(VkCommandBufferUsageFlags flags) {
+	VkCommandBufferBeginInfo begin_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.pNext = nullptr,
 		.flags = flags,
 		.pInheritanceInfo = nullptr
 	};
-	return beginInfo;
+	return begin_info;
 }
 
 void Command::begin() {
-	if (_inProgress) {
+	if (in_progress) {
         Logger::logError("Command buffer already begun!");
 	}
-	VkCommandBufferBeginInfo beginInfo = commandBufferBeginInfo();
-	if (vkBeginCommandBuffer(_commandBuffer, &beginInfo) != VK_SUCCESS) {
+	VkCommandBufferBeginInfo begin_info = command_buffer_begin_info();
+	if (vkBeginCommandBuffer(buffer, &begin_info) != VK_SUCCESS) {
         Logger::logError("Failed to begin command buffer!");
 	}
-	_inProgress = true;
+	in_progress = true;
 }
 
 void Command::end() {
-	if (!_inProgress) {
+	if (!in_progress) {
         Logger::logError("Can't end a command buffer that has not begun!");
 	}
-	if (vkEndCommandBuffer(_commandBuffer) != VK_SUCCESS) {
+	if (vkEndCommandBuffer(buffer) != VK_SUCCESS) {
         Logger::logError("Failed to end command buffer!");
 	}
-	_inProgress = false;
+	in_progress = false;
 }
 
-void Command::reset(VkCommandBufferResetFlags flags) const {
-	if (vkResetCommandBuffer(_commandBuffer, flags) != VK_SUCCESS) {
+void Command::reset(VkCommandBufferResetFlags flags) {
+	if (vkResetCommandBuffer(buffer, flags) != VK_SUCCESS) {
         Logger::logError("Failed to reset the command buffer!");
 	}
 }
 
-void Command::submitToQueue(VkQueue queue, Frame& frame) {
-	VkCommandBufferSubmitInfo cmdSubmitInfo{
+void Command::submit_to_queue(VkQueue queue, FrameSync* sync) {
+	VkCommandBufferSubmitInfo command_submit_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
 		.pNext = nullptr,
-		.commandBuffer = _commandBuffer,
+		.commandBuffer = buffer,
 		.deviceMask = 0
 	};
 	// This semaphore waits until the previous frame has been presented
-	VkSemaphoreSubmitInfo waitSemaphoreInfo{
+	VkSemaphoreSubmitInfo wait_semaphore_info{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 		.pNext = nullptr,
-		.semaphore = frame.presentSemaphore().handle(),
+		.semaphore = sync->present_semaphore.handle,
 		.value = 1,
 		.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
 		.deviceIndex = 0
 	};
 	// This semaphore waits until the frame is fully rendered
-	VkSemaphoreSubmitInfo signalSemaphoreInfo{
+	VkSemaphoreSubmitInfo signal_semaphore_info{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 		.pNext = nullptr,
-		.semaphore = frame.renderSemaphore().handle(),
+		.semaphore = sync->render_semaphore.handle,
 		.value = 1,
 		.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
 		.deviceIndex = 0
 	};
 
-	VkSubmitInfo2 submitInfo{
+	VkSubmitInfo2 submit_info{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
 		.pNext = nullptr,
 		.waitSemaphoreInfoCount = 1,
-		.pWaitSemaphoreInfos = &waitSemaphoreInfo,
+		.pWaitSemaphoreInfos = &wait_semaphore_info,
 		.commandBufferInfoCount = 1,
-		.pCommandBufferInfos = &cmdSubmitInfo,
+		.pCommandBufferInfos = &command_submit_info,
 		.signalSemaphoreInfoCount = 1,
-		.pSignalSemaphoreInfos = &signalSemaphoreInfo
+		.pSignalSemaphoreInfos = &signal_semaphore_info
 	};
 
-	if (vkQueueSubmit2(queue, 1, &submitInfo, frame.renderFence().handle()) != VK_SUCCESS) {
+	if (vkQueueSubmit2(queue, 1, &submit_info, sync->render_fence.handle) != VK_SUCCESS) {
         Logger::logError("Failed to submit commands to queue!");
 	}
 }
 
 // ImmediateCommand --------------------------------------------------------------------------------------------------
 
-ImmediateCommand::ImmediateCommand(Device* device, CommandPool* commandPool) :
-	Command(device, commandPool),
-	_submitFence(device, VK_FENCE_CREATE_SIGNALED_BIT) {}
+void ImmediateCommand::initialize(Device* device, CommandPool* command_pool) {
+    Command::initialize(device, command_pool);
+    submit_fence.initialize(device, VK_FENCE_CREATE_SIGNALED_BIT);
+}
 
-void ImmediateCommand::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function) {
-	VkFence fence = _submitFence.handle();
-	vkResetFences(_device->handle(), 1, &fence);
+void ImmediateCommand::run_command(std::function<void(VkCommandBuffer cmd)>&& function) {
+	vkResetFences(device->logical_device, 1, &submit_fence.handle);
 	reset(); // Reset the command buffer
 
 	begin();
-	function(_commandBuffer);
+	function(buffer);
 	end();
 
-	submitToQueue(_device->graphicsQueue());
-	vkWaitForFences(_device->handle(), 1, &fence, true, 9999999999);
-}
-
-void ImmediateCommand::submitToQueue(VkQueue queue) {
-	VkCommandBufferSubmitInfo cmdSubmitInfo{
+	VkCommandBufferSubmitInfo command_submit_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
 		.pNext = nullptr,
-		.commandBuffer = _commandBuffer,
+		.commandBuffer = buffer,
 		.deviceMask = 0
 	};
 	// This semaphore waits until the previous frame has been presented
 
-	VkSubmitInfo2 submitInfo{
+	VkSubmitInfo2 submit_info{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
 		.pNext = nullptr,
 		.waitSemaphoreInfoCount = 1,
 		.pWaitSemaphoreInfos = nullptr,
 		.commandBufferInfoCount = 1,
-		.pCommandBufferInfos = &cmdSubmitInfo,
+		.pCommandBufferInfos = &command_submit_info,
 		.signalSemaphoreInfoCount = 1,
 		.pSignalSemaphoreInfos = nullptr
 	};
 
-	if (vkQueueSubmit2(queue, 1, &submitInfo, _submitFence.handle()) != VK_SUCCESS) {
+	if (vkQueueSubmit2(device->graphics_queue, 1, &submit_info, submit_fence.handle) != VK_SUCCESS) {
         Logger::logError("Failed to submit commands to queue!");
 	}
+	vkWaitForFences(device->logical_device, 1, &submit_fence.handle, true, 9999999999);
 }
+

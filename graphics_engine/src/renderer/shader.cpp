@@ -14,89 +14,89 @@
 
 #ifdef SHADER_DIR
 // Global variable for the shaders folder
-const std::string shaderDirectory(SHADER_DIR);
+const std::string shader_directory(SHADER_DIR);
 #endif // SHADER_DIR
 
 
 // SHADER MANAGER ----------------------------------------------------------------------
 
-static void reportDiagnostics(const std::string& shaderName, slang::IBlob* diagnostic) {
+static void reportDiagnostics(const std::string& shader_name, slang::IBlob* diagnostic) {
     if (diagnostic != nullptr) {
-        Logger::logError("for " + shaderName + ":");
+        Logger::logError("for " + shader_name + ":");
         Logger::logError(static_cast<const char*>(diagnostic->getBufferPointer()));
     }
 }
 
-ShaderManager::ShaderManager() {
-    compileShaders();
+void ShaderManager::initialize() {
+    compile_shaders();
 }
 
-ShaderManager::~ShaderManager() {
-    // Destroy any objects created by slang before destroying
-}
-
-void ShaderManager::findShaders() {
+void ShaderManager::find_shaders() {
     // We want to account for changes in files if we are recompiling, so clear the current list of shaders
-    _shaders.clear();
+    found_shaders.clear();
 
     // Iterate over the recursive directory iterator to find all shader files in ${Project_Source}/shaders/directory
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(shaderDirectory)) {
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(shader_directory)) {
         if (!entry.is_directory() && entry.path().extension() == ".slang") {
-            _shaders.push_back(entry.path().stem().string()); // push back the stem (filename without extension)
+            found_shaders.push_back(entry.path().stem().string()); // push back the stem (filename without extension)
         }
     }
 }
 
-void ShaderManager::compileShaders() {
+void ShaderManager::compile_shaders() {
+
+    Slang::ComPtr<slang::IGlobalSession> global_session;
+
     // A slang global session is simply a connection to the API (like a global context)
-    SlangGlobalSessionDesc globalDesc{};
-    if (slang::createGlobalSession(&globalDesc, _globalSession.writeRef()) != SLANG_OK) {
+    SlangGlobalSessionDesc global_desc{};
+    if (slang::createGlobalSession(&global_desc, global_session.writeRef()) != SLANG_OK) {
         Logger::logError("Failed to create a slang global session!");
     }
 
     // A session is a more localized context that maintains caching for reuse
-    slang::SessionDesc sessionDesc{};
+    slang::SessionDesc session_desc{};
 
     // Define a target descriptor
-    slang::TargetDesc targetDesc{
+    slang::TargetDesc target_desc{
         .format  = SLANG_SPIRV,
-        .profile = _globalSession->findProfile("spirv_1_6"),
+        .profile = global_session->findProfile("spirv_1_6"),
     };
-    sessionDesc.targetCount = 1;
-    sessionDesc.targets = &targetDesc;
+    session_desc.targetCount = 1;
+    session_desc.targets = &target_desc;
 
     // Enable compiler options. For now, we just want spir-v to be directly output from the compiler
     slang::CompilerOptionEntry options[2] = {
         {slang::CompilerOptionName::EmitSpirvDirectly, {slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr}},
         {slang::CompilerOptionName::VulkanEmitReflection, {slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr}},
     };
-    sessionDesc.compilerOptionEntryCount = 2;
-    sessionDesc.compilerOptionEntries = options;
+    session_desc.compilerOptionEntryCount = 2;
+    session_desc.compilerOptionEntries = options;
 
+    Slang::ComPtr<slang::ISession> session;
 
     // Now create the session
-    _globalSession->createSession(sessionDesc, _session.writeRef());
+    global_session->createSession(session_desc, session.writeRef());
 
     Logger::logError("Finding Shaders and Creating Modules...");
 
     // Search the shaders directory for all the .slang files and convert them into modules
-    findShaders();
+    find_shaders();
 
-    if (_shaders.size() < 1) {
+    if (found_shaders.size() < 1) {
         Logger::log("No shaders found in shader directory!");
         return;
     }
 
-    std::vector<Slang::ComPtr<slang::IModule>> slangModules;
-    for (int nShader = 0; nShader < _shaders.size(); nShader++) {
+    std::vector<Slang::ComPtr<slang::IModule>> slang_modules;
+    for (int i_shader = 0; i_shader < found_shaders.size(); i_shader++) {
         Slang::ComPtr<slang::IBlob> diagnostic;
-        std::string filepath = shaderDirectory + _shaders[nShader];
-        Slang::ComPtr<slang::IModule> module(_session->loadModule(filepath.c_str(), diagnostic.writeRef()));
+        std::string filepath = shader_directory + found_shaders[i_shader];
+        Slang::ComPtr<slang::IModule> module(session->loadModule(filepath.c_str(), diagnostic.writeRef()));
 
-        reportDiagnostics(_shaders[nShader], diagnostic);
+        reportDiagnostics(found_shaders[i_shader], diagnostic);
         Logger::logError("filepath" + filepath);
 
-        slangModules.push_back(module);
+        slang_modules.push_back(module);
     }
 
     Logger::logError("Finding Entry Points...");
@@ -104,97 +104,98 @@ void ShaderManager::compileShaders() {
     // Get the entry points to each shader program. For now each will have a vertex and fragment, but
     // this should be generalized in the future
     Slang::ComPtr<slang::IBlob> diagnostic;
-    for (int nShader = 0; nShader < slangModules.size(); nShader++) {
-        const auto& module = slangModules[nShader];
-        int entryPointCount = module->getDefinedEntryPointCount();
-        std::vector<Slang::ComPtr<slang::IEntryPoint>> moduleEntryPoints;
-        for (int nEntry = 0; nEntry < entryPointCount; nEntry++) {
-            Slang::ComPtr<slang::IEntryPoint> entryPoint;
-            module->getDefinedEntryPoint(nEntry, entryPoint.writeRef());
-            if (!entryPoint) {
+    for (int i_shader = 0; i_shader < slang_modules.size(); i_shader++) {
+        const auto& module = slang_modules[i_shader];
+        int entry_point_count = module->getDefinedEntryPointCount();
+        std::vector<Slang::ComPtr<slang::IEntryPoint>> module_entry_points;
+        for (int i_entry_point = 0; i_entry_point < entry_point_count; i_entry_point++) {
+            Slang::ComPtr<slang::IEntryPoint> entry_point;
+            module->getDefinedEntryPoint(i_entry_point, entry_point.writeRef());
+            if (!entry_point) {
                 Logger::logError("Error getting entry points from shader!");
             }
-            moduleEntryPoints.push_back(entryPoint);
+            module_entry_points.push_back(entry_point);
         }
 
         Logger::logError("Composing Programs...");
 
-        Slang::ComPtr<slang::IComponentType> composedProgram;
-        std::vector<slang::IComponentType*> programComponents;
-        programComponents.push_back(module); // Push back the module component to the composedProgram
+        Slang::ComPtr<slang::IComponentType> composed_programs;
+        std::vector<slang::IComponentType*> program_components;
+        program_components.push_back(module); // Push back the module component to the composedProgram
         // Since there may be multiple entry points per shader, the entry points multimap needs to return a range
-        for (const auto& ep : moduleEntryPoints) {
-            programComponents.push_back(ep);
+        for (const auto& ep : module_entry_points) {
+            program_components.push_back(ep);
         }
 
-        SlangResult result = _session->createCompositeComponentType(programComponents.data(), programComponents.size(), composedProgram.writeRef(), diagnostic.writeRef());
-        reportDiagnostics(_shaders[nShader], diagnostic);
+        SlangResult result = session->createCompositeComponentType(program_components.data(), program_components.size(), composed_programs.writeRef(), diagnostic.writeRef());
+        reportDiagnostics(found_shaders[i_shader], diagnostic);
 
         Logger::logError("Linking programs...");
 
         // Lastly, make sure there are no missing dependencies by linking the composed programs
-        Slang::ComPtr<slang::IComponentType> linkedProgram;
-        result = composedProgram->link(linkedProgram.writeRef(), diagnostic.writeRef());
+        Slang::ComPtr<slang::IComponentType> linked_program;
+        result = composed_programs->link(linked_program.writeRef(), diagnostic.writeRef());
 
-        reportDiagnostics(_shaders[nShader], diagnostic);
+        reportDiagnostics(found_shaders[i_shader], diagnostic);
 
         // Finally, we can get the compiled target code for each entry points
-        slang::ProgramLayout* layout = linkedProgram->getLayout();
+        slang::ProgramLayout* layout = linked_program->getLayout();
         if (!layout) {
             Logger::logError("No program layout for shader");
         }
 
         // Compile each entry point
-        for (int nEntryPoint = 0; nEntryPoint < entryPointCount; nEntryPoint++) {
+        for (int i_entry_point = 0; i_entry_point < entry_point_count; i_entry_point++) {
             Slang::ComPtr<slang::IBlob> diagnostic;
 
             // Compiled code gets stored into an IBlob
-            Slang::ComPtr<slang::IBlob> spirvCode;
-            linkedProgram->getEntryPointCode(nEntryPoint, 0, spirvCode.writeRef(), diagnostic.writeRef());
+            Slang::ComPtr<slang::IBlob> spirv_code;
+            linked_program->getEntryPointCode(i_entry_point, 0, spirv_code.writeRef(), diagnostic.writeRef());
 
-            slang::EntryPointReflection* entryReflect = layout->getEntryPointByIndex(nEntryPoint);
-            if (!entryReflect) {
-                Logger::logError("No entry point reflection for index: " + std::to_string(nEntryPoint));
+            slang::EntryPointReflection* entry_point_reflect = layout->getEntryPointByIndex(i_entry_point);
+            if (!entry_point_reflect) {
+                Logger::logError("No entry point reflection for index: " + std::to_string(i_entry_point));
             }
-            std::string entryPointName = std::string(entryReflect->getName());
-            Logger::logError("entry point: " + entryPointName);
+            std::string entry_point_name = std::string(entry_point_reflect->getName());
+            Logger::logError("entry point: " + entry_point_name);
 
-            _compiledSPIRV.insert({entryPointName, spirvCode});
+            compiled_spirv.insert({entry_point_name, spirv_code});
 
-            std::ofstream file(entryPointName+"debug.spv", std::ios::binary);
-            file.write(reinterpret_cast<const char*>(spirvCode->getBufferPointer()),
-                    spirvCode->getBufferSize());
-            file.close();
+//            std::ofstream file(entry_point_name+"debug.spv", std::ios::binary);
+//            file.write(reinterpret_cast<const char*>(spirv_code->getBufferPointer()),
+//                    spirv_code->getBufferSize());
+//            file.close();
         }
     }
 }
 
 // SHADER ------------------------------------------------------------------------------
 
-static bool isFilename(std::string potentialFile) {
+static bool is_filename(std::string potential_file) {
     // I think the simplest way for now is to just check if the string has a file extension, since I don't
     // think an entry point can have a name with a "." in it
-    std::filesystem::path filepath(potentialFile);
+    std::filesystem::path filepath(potential_file);
     if (!filepath.extension().empty()) {
         return true; // Then we have a file!
     }
     return false;
 }
 
-Shader::Shader(Device* device, ShaderManager* shaderManager, VkShaderStageFlagBits stageFlag, std::string shader)
-	: _device(device),
-    _shaderManager(shaderManager),
-	_shaderStageFlag(stageFlag) {
+void Shader::initialize(Device* device, ShaderManager* shader_manager, VkShaderStageFlagBits stage_flag, const std::string& shader) {
+
+    this->device = device;
+    this->shader_manager = shader_manager;
+    this->stage = stage_flag;
 
     // First, check to see if "shader" is referring to an existing file
-    if (isFilename(shader)) {
-        buildShaderFromFile(shader);
+    if (is_filename(shader)) {
+        build_shader_from_file(shader);
     } else {
-        buildShaderFromCode(shader);
+        build_shader_from_code(shader);
     }
 }
 
-void Shader::buildShaderFromFile(std::string filepath) {
+void Shader::build_shader_from_file(const std::string& filepath) {
 	// std::ios::ate -> puts stream curser at end
 	// std::ios::binary -> opens file in binary mode
 	std::ifstream file(filepath, std::ios::ate | std::ios::binary);
@@ -210,7 +211,7 @@ void Shader::buildShaderFromFile(std::string filepath) {
 	file.close();
 
 	// Now we have the entire shader in the buffer and can load it to Vulkan
-	VkShaderModuleCreateInfo createinfo {
+	VkShaderModuleCreateInfo create_info {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
@@ -218,39 +219,39 @@ void Shader::buildShaderFromFile(std::string filepath) {
         .pCode = buffer.data()
 	};
 
-	if (vkCreateShaderModule(_device->handle(), &createinfo, nullptr, &_shaderModule) != VK_SUCCESS) {
+	if (vkCreateShaderModule(device->logical_device, &create_info, nullptr, &module) != VK_SUCCESS) {
         Logger::logError("Error: vkCreateShaderModule() failed while creating " + std::string(filepath));
 	}
     Logger::log("Shader successfully loaded: " + filepath);
 }
 
-void Shader::buildShaderFromCode(std::string shader) {
-	VkShaderModuleCreateInfo createinfo {
+void Shader::build_shader_from_code(const std::string& shader) {
+	VkShaderModuleCreateInfo create_info {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .codeSize = _shaderManager->getShaderCodeLength(shader),
-        .pCode = (uint32_t*)_shaderManager->getShaderCode(shader)
+        .codeSize = shader_manager->get_shader_code_length(shader),
+        .pCode = (uint32_t*)shader_manager->get_shader_code(shader)
     };
 
-	if (vkCreateShaderModule(_device->handle(), &createinfo, nullptr, &_shaderModule) != VK_SUCCESS) {
+	if (vkCreateShaderModule(device->logical_device, &create_info, nullptr, &module) != VK_SUCCESS) {
         Logger::logError("Error: vkCreateShaderModule() failed");
 	}
 
     Logger::log("Shader successfully loaded: " + shader);
 }
 
-Shader::~Shader() {
-    vkDestroyShaderModule(_device->handle(), _shaderModule, nullptr);
+void Shader::cleanup() {
+    vkDestroyShaderModule(device->logical_device, module, nullptr);
 }
 
-VkPipelineShaderStageCreateInfo Shader::pipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule shader) {
-	VkPipelineShaderStageCreateInfo createInfo{
+VkPipelineShaderStageCreateInfo Shader::pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shader) {
+	VkPipelineShaderStageCreateInfo create_info{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.pNext = nullptr,
 		.stage = stage,
 		.module = shader,
 		.pName = "main" // entry point of the shader program
 	};
-	return createInfo;
+	return create_info;
 }

@@ -7,16 +7,13 @@
 
 class GuiRenderSystem : public RenderSystem {
 public:
-	GuiRenderSystem(Renderer& renderer, Window& window); // Forces there to be a gui object before creating a gui render system
-	~GuiRenderSystem();
+    void initialize(Renderer* renderer);
+    void cleanup();
 
-	void render(Command& cmd);
+    void start_frame();
+    void end_frame();
 
-	void getNewFrame();
+    void render(Command* cmd);
 
-	void endFrame();
-
-private:
-	Window& _window;
-	DescriptorPool _descriptorPool;
+    DescriptorPool descriptor_pool;
 };

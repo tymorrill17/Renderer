@@ -2,40 +2,32 @@
 #include "vulkan/vulkan.h"
 #include "utility/logger.h"
 #include "device.h"
-#include "NonCopyable.h"
+#include "vulkan/vulkan_core.h"
 
-class Semaphore : public NonCopyable {
+class Semaphore {
 public:
-	Semaphore(Device* device, VkSemaphoreCreateFlags flags = 0U);
-	~Semaphore();
+    void initialize(Device* device, VkSemaphoreCreateFlags flags = 0U);
+    void cleanup();
 
-    Semaphore(Semaphore&& other) noexcept;
-    Semaphore& operator=(Semaphore&& other) noexcept;
-
-	inline VkSemaphore handle() { return _semaphore; }
-
-	void cleanup();
-
-private:
-	Device* _device;
-	VkSemaphore _semaphore;
-	VkSemaphoreCreateFlags _flags;
+    Device* device;
+    VkSemaphore handle;
 };
 
-class Fence : public NonCopyable {
+class Fence {
 public:
-	Fence(Device* device, VkFenceCreateFlags flags = 0U);
-	~Fence();
+    void initialize(Device* device, VkFenceCreateFlags flags = 0U);
+    void cleanup();
 
-    Fence(Fence&& other) noexcept;
-    Fence& operator=(Fence&& other) noexcept;
+    Device* device;
+    VkFence handle;
+};
 
-	inline VkFence handle() { return _fence; }
+class FrameSync {
+public:
+    void initialize(Device* device);
+    void cleanup();
 
-	void cleanup();
-
-private:
-	Device* _device;
-	VkFence _fence;
-	VkFenceCreateFlags _flags;
+	Semaphore present_semaphore;
+	Semaphore render_semaphore;
+	Fence render_fence;
 };

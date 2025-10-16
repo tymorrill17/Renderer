@@ -2,7 +2,7 @@
 #include "render_systems/render_system.h"
 #include "utility/logger.h"
 
-std::vector<PoolSizeRatio> poolSizes = { { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+std::vector<PoolSizeRatio> pool_sizes = { { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
 	{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
 	{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
 	{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
@@ -15,61 +15,59 @@ std::vector<PoolSizeRatio> poolSizes = { { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
 	{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
 };
 
-GuiRenderSystem::GuiRenderSystem(Renderer& renderer, Window& window) :
-	RenderSystem(renderer),
-	_window(window),
-	_descriptorPool(_renderer.device(), 1000, poolSizes) {
+void GuiRenderSystem::initialize(Renderer* renderer) {
+	descriptor_pool.initialize(&renderer->device, 1000, pool_sizes);
 
 	// Initialize core structures of ImGui
 	ImGui::CreateContext();
 
 	// Initializes ImGui for SDL
-	ImGui_ImplSDL2_InitForVulkan(_window.SDL_window());
+	ImGui_ImplSDL2_InitForVulkan(renderer->window.sdl_window);
 
 	// Initializes ImGui for Vulkan
-	VkFormat swapchainImageFormat = _renderer.swapchain().imageFormat();
-	VkPipelineRenderingCreateInfoKHR pipelineRenderingInfo{
+	VkPipelineRenderingCreateInfoKHR pipeline_rendering_info{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = 1,
-		.pColorAttachmentFormats = &swapchainImageFormat
+		.pColorAttachmentFormats = &renderer->swapchain.image_format
 	};
-	ImGui_ImplVulkan_InitInfo vulkanInit{
-		.Instance = _renderer.instance().handle(),
-		.PhysicalDevice = _renderer.device().physicalDevice(),
-		.Device = _renderer.device().handle(),
-		.Queue = _renderer.device().graphicsQueue(),
-		.DescriptorPool = _descriptorPool.pool(),
-		.MinImageCount = _renderer.swapchain().framesInFlight(),
-		.ImageCount = _renderer.swapchain().framesInFlight(),
-		.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+	ImGui_ImplVulkan_InitInfo vulkan_init{
+		.Instance = renderer->instance.handle,
+		.PhysicalDevice = renderer->device.physical_device,
+		.Device = renderer->device.logical_device,
+		.Queue = renderer->device.graphics_queue,
+		.DescriptorPool = descriptor_pool.handle,
+		.MinImageCount = renderer->frames_in_flight,
+		.ImageCount = renderer->frames_in_flight,
+        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 		.UseDynamicRendering = true,
-		.PipelineRenderingCreateInfo = pipelineRenderingInfo
+		.PipelineRenderingCreateInfo = pipeline_rendering_info
 	};
-	ImGui_ImplVulkan_Init(&vulkanInit);
+	ImGui_ImplVulkan_Init(&vulkan_init);
 
 	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-void GuiRenderSystem::render(Command& command) {
-	static Gui& gui = Gui::getGui();
-	gui.constructWindows();
+void GuiRenderSystem::render(Command* command) {
+	static Gui& gui = Gui::get_gui();
+	gui.construct_windows();
 
 	ImGui::Render();
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command.buffer());
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command->buffer);
 }
 
-void GuiRenderSystem::getNewFrame() {
+void GuiRenderSystem::start_frame() {
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
 }
 
-void GuiRenderSystem::endFrame() {
+void GuiRenderSystem::end_frame() {
 	ImGui::EndFrame();
 }
 
-GuiRenderSystem::~GuiRenderSystem() {
+void GuiRenderSystem::cleanup() {
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
+    descriptor_pool.cleanup();
 }

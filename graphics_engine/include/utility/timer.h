@@ -1,9 +1,8 @@
 #pragma once
 #include <chrono>
 #include <cmath>
-#include "NonCopyable.h"
 
-class Timer : public NonCopyable {
+class Timer {
 public:
 	// @brief To be called every frame. Updates the frametime and avg fps counter
 	void update();

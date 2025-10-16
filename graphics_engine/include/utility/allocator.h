@@ -3,19 +3,13 @@
 #include "utility/logger.h"
 #include "renderer/device.h"
 #include "renderer/instance.h"
-#include "NonCopyable.h"
 
-class DeviceMemoryManager : public NonCopyable {
+class DeviceMemoryManager {
 public:
-	DeviceMemoryManager(Device& device, Instance& instance);
-	~DeviceMemoryManager();
+    void initialize(Device* device, Instance* instance);
+    void cleanup();
 
-	inline VmaAllocator allocator() const { return _vmaAllocator; }
-
-private:
-	// @brief The actual VMA allocator instance
-	VmaAllocator _vmaAllocator;
-
-	Device& _device;
-	Instance& _instance;
+    Device* device;
+    Instance* instance;
+    VmaAllocator allocator;
 };
