@@ -4,24 +4,17 @@
 
 class Timer {
 public:
-	// @brief To be called every frame. Updates the frametime and avg fps counter
-	void update();
-
-	// @brief Get the static instance of the timer
-	static Timer& getTimer() {
+    void initialize();
+	static Timer& get_timer() {
 		static Timer instance;
 		return instance;
 	}
+    void update();
 
-	inline float frameTime() { return _frameTime; }
-	inline float framesPerSecond() { return _fps; }
+	float frame_time;
+    float fps_smoothing;
+	float fps; // frames per second that are averaged over time
 
-private:
-	Timer();
-
-	float _frameTime;
-	float _fps; // frames per second that are averaged over time
-
-	std::chrono::steady_clock::time_point _currentTime;
-	std::chrono::steady_clock::time_point _newTime;
+	std::chrono::steady_clock::time_point current_time;
+	std::chrono::steady_clock::time_point new_time;
 };

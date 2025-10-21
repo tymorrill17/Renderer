@@ -5,16 +5,12 @@ void InputManager::initialize(Window* window) {
 }
 
 void InputManager::process_inputs() {
-#ifdef ENABLE_GUI
-    Gui& gui = Gui::getGui();
-#endif
+    static Gui& gui = Gui::get_gui();
 
 	SDL_Event sdl_event;
 	while (SDL_PollEvent(&sdl_event) != 0) {
 
-#ifdef ENABLE_GUI
-        gui->processInputs(&sdl_event);
-#endif
+        gui.process_inputs(&sdl_event);
 
 		switch (sdl_event.type) {
 	 	case SDL_QUIT:
