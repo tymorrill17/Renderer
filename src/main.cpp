@@ -1,4 +1,5 @@
 #include "render_systems/gui_render_system.h"
+#include "render_systems/mesh_render_system.h"
 #include "renderer/renderer.h"
 #include "utility/window.h"
 #include "utility/input_manager.h"
@@ -37,6 +38,10 @@ int main (int argc, char *argv[]) {
     GuiRenderSystem gui_render_system;
     gui_render_system.initialize(&renderer);
     renderer.add_render_system(&gui_render_system);
+
+    MeshRenderSystem mesh_render_system;
+    mesh_render_system.initialize(&renderer);
+    renderer.add_render_system(&mesh_render_system);
 
     static Gui& gui = Gui::get_gui();
 

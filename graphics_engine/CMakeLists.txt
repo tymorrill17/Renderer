@@ -26,9 +26,12 @@ target_link_libraries(GraphicsEngine PUBLIC Vulkan::Vulkan)
 # Make engine headers available to projects that link against it
 target_include_directories(GraphicsEngine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_include_directories(GraphicsEngine SYSTEM PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
 )
 
 # Engine-specific compile features
-target_compile_features(GraphicsEngine PUBLIC cxx_std_23)
+# target_compile_features(GraphicsEngine PUBLIC cxx_std_23)
 

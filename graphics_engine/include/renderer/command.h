@@ -39,6 +39,7 @@ public:
 class ImmediateCommand : public Command {
 public:
     void initialize(Device* device, CommandPool* command_pool) override;
+    void cleanup();
 
     void run_command(std::function<void(VkCommandBuffer cmd)>&& function);
 

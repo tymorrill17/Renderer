@@ -5,6 +5,7 @@
 #include "utility/debug_messenger.h"
 #include "swapchain.h"
 #include "image.h"
+#include "buffer.h"
 #include "descriptor.h"
 #include "pipeline.h"
 #include "render_systems/render_system.h"
@@ -32,6 +33,14 @@ public:
     void resize_callback();
     Renderer& add_render_system(RenderSystem* render_system);
 
+    Buffer create_buffer(
+        size_t instance_bytes,
+        size_t instance_count,
+        VkBufferUsageFlags vk_memory_usage,
+		VmaMemoryUsage vma_memory_usage,
+        size_t minimum_offset_alignment = 1
+    );
+
     Window window;
     Instance instance;
     DebugMessenger debug_messenger;
@@ -43,6 +52,7 @@ public:
     DrawImage draw_image;
     CommandPool command_pool;
     std::vector<Command> frame_command;
+    ImmediateCommand immediate_command;
     DescriptorLayoutBuilder descriptor_layout_builder;
     DescriptorWriter descriptor_writer;
     ShaderManager shader_manager;

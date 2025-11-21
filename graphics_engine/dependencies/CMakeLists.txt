@@ -46,7 +46,7 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/SDL2")
     # Using bundled SDL2
     add_library(sdl2 INTERFACE)
-    target_include_directories(sdl2 INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/SDL2/include")
+    target_include_directories(sdl2 SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/SDL2/include")
 
     # Platform-specific library paths
     if(WIN32)
@@ -79,7 +79,7 @@ else()
         # Fallback to Vulkan SDK (if you have SDL2 there)
         if(EXISTS "$ENV{VULKAN_SDK}/Include/SDL2")
             add_library(sdl2 INTERFACE)
-            target_include_directories(sdl2 INTERFACE $ENV{VULKAN_SDK}/Include/SDL2)
+            target_include_directories(sdl2 SYSTEM INTERFACE $ENV{VULKAN_SDK}/Include/SDL2)
             target_link_directories(sdl2 INTERFACE $ENV{VULKAN_SDK}/Lib)
             target_link_libraries(sdl2 INTERFACE SDL2 SDL2main)
             target_link_libraries(GraphicsEngine PUBLIC sdl2)
@@ -110,7 +110,7 @@ endif()
 # ImGui - static library (requires compilation)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
     add_library(imgui STATIC)
-    target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
+    target_include_directories(imgui SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
 
     # Collect ImGui source files
     file(GLOB IMGUI_SOURCES

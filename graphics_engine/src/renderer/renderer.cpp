@@ -54,6 +54,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
         command.initialize(&device, &command_pool);
         frame_command.push_back(command);
     }
+    immediate_command.initialize(&device, &command_pool);
 
     descriptor_layout_builder.initialize(&device);
     descriptor_writer.initialize(&device);
@@ -71,6 +72,7 @@ void Renderer::cleanup() {
     descriptor_layout_builder.cleanup();
     // TODO: Should there be a wait for idle before destroying command pool?
     command_pool.cleanup();
+    immediate_command.cleanup();
     draw_image.cleanup();
     for (int i_frame = 0; i_frame < frames_in_flight; i_frame++) {
         frame_sync[i_frame].cleanup();
@@ -171,3 +173,34 @@ void Renderer::resize_callback() {
 	}
 }
 
+Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
+    VkBufferUsageFlags vk_memory_usage, VmaMemoryUsage vma_memory_usage,
+    size_t minimum_offset_alignment) {
+
+    Buffer new_buffer;
+
+    new_buffer.device_memory_manager = &this->device_memory_manager;
+    new_buffer.instance_bytes = instance_bytes;
+    new_buffer.instance_count = instance_count;
+
+    new_buffer.total_bytes = instance_bytes * instance_count;
+    new_buffer.alignment = Buffer::find_alignment_size(instance_bytes, minimum_offset_alignment);
+
+	VkBufferCreateInfo buffer_create_info{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.pNext = nullptr,
+		.size = new_buffer.total_bytes,
+		.usage = vk_memory_usage
+	};
+
+	VmaAllocationCreateInfo allocation_create_info{
+		.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT,
+		.usage = vma_memory_usage
+	};
+
+	if (vmaCreateBuffer(new_buffer.device_memory_manager->allocator, &buffer_create_info, &allocation_create_info, &new_buffer.handle, &new_buffer.allocation, nullptr) != VK_SUCCESS) {
+        Logger::logError("Failed to create allocated buffer!");
+	}
+
+    return new_buffer;
+}

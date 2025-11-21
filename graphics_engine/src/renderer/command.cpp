@@ -166,3 +166,7 @@ void ImmediateCommand::run_command(std::function<void(VkCommandBuffer cmd)>&& fu
 	vkWaitForFences(device->logical_device, 1, &submit_fence.handle, true, 9999999999);
 }
 
+void ImmediateCommand::cleanup() {
+    submit_fence.cleanup();
+}
+
