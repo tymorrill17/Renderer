@@ -1,6 +1,8 @@
+#include "fwd.hpp"
 #include "render_systems/gui_render_system.h"
 #include "render_systems/mesh_render_system.h"
 #include "renderer/renderer.h"
+#include "renderer/mesh.h"
 #include "utility/window.h"
 #include "utility/input_manager.h"
 #include <cstdint>
@@ -45,6 +47,18 @@ int main (int argc, char *argv[]) {
 
     static Gui& gui = Gui::get_gui();
 
+    // Create meshes
+
+    Mesh test_rectangle = PrimitiveShapes::Rectangle(1.0f, 1.0f);
+    test_rectangle.upload_to_GPU(&renderer);
+
+    GPUDrawPushConstants push_constants{
+        .world_matrix = glm::mat4{ 1.0f },
+        .vertex_buffer_address = test_rectangle.gpu_buffers.vertex_buffer_address,
+    };
+
+    mesh_render_system.add_renderable(&test_rectangle);
+
     // Main loop
     while (!renderer.window.window_should_close) {
         input_manager.process_inputs();
@@ -54,6 +68,8 @@ int main (int argc, char *argv[]) {
             ImGui::Text("testing...");
         });
 
+        mesh_render_system.update_push_constants(&push_constants);
+
         renderer.draw();
 
         gui_render_system.end_frame();
@@ -61,7 +77,10 @@ int main (int argc, char *argv[]) {
     }
 
     renderer.wait_for_idle();
+
+    test_rectangle.gpu_buffers.cleanup();
     gui_render_system.cleanup();
+    mesh_render_system.cleanup();
     renderer.cleanup();
 
     return 0;

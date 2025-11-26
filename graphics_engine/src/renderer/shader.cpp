@@ -231,7 +231,7 @@ void Shader::build_shader_from_code(const std::string& shader) {
         .pNext = nullptr,
         .flags = 0,
         .codeSize = shader_manager->get_shader_code_length(shader),
-        .pCode = (uint32_t*)shader_manager->get_shader_code(shader)
+        .pCode = shader_manager->get_shader_code(shader)
     };
 
 	if (vkCreateShaderModule(device->logical_device, &create_info, nullptr, &module) != VK_SUCCESS) {

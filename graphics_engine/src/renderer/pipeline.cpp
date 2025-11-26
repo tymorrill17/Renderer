@@ -119,7 +119,7 @@ PipelineBuilder& PipelineBuilder::set_input_topology(VkPrimitiveTopology topolog
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::seet_polygon_mode(VkPolygonMode mode) {
+PipelineBuilder& PipelineBuilder::set_polygon_mode(VkPolygonMode mode) {
     config.rasterizer.polygonMode = mode;
     config.rasterizer.lineWidth = 1.0f; // Setting this to a default of 1.0
     return *this;
@@ -180,13 +180,14 @@ PipelineBuilder& PipelineBuilder::set_vertex_input_state(VkPipelineVertexInputSt
 
 // Pipeline Layout
 
-PipelineBuilder& PipelineBuilder::add_descriptors(const std::vector<VkDescriptorSetLayout> descriptors) {
-    config.descriptor_set_layouts = descriptors;
+// TODO: @Cleanup make sure passing a span by value is acceptable
+PipelineBuilder& PipelineBuilder::add_descriptor(VkDescriptorSetLayout descriptor) {
+    config.descriptor_set_layouts.push_back(descriptor);
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::add_push_constants(const std::vector<VkPushConstantRange> pushConstants) {
-    config.push_constant_ranges = pushConstants;
+PipelineBuilder& PipelineBuilder::add_push_constant(VkPushConstantRange push_constant) {
+    config.push_constant_ranges.push_back(push_constant);
     return *this;
 }
 
@@ -222,4 +223,5 @@ VkPipelineLayout PipelineLayout::create_pipeline_layout(Device* device, VkPipeli
     }
     return pipeline_layout;
 }
+
 

@@ -1,3 +1,6 @@
+#pragma once
+
+#include "fwd.hpp"
 #include "glm/glm.hpp"
 #include "renderer/renderer.h"
 #include "renderer/buffer.h"
@@ -14,7 +17,13 @@ struct MeshVertex {
     glm::vec4 color;
 };
 
+struct GPUDrawPushConstants {
+    glm::mat4 world_matrix;
+    VkDeviceAddress vertex_buffer_address;
+};
+
 class GPUMeshBuffers {
+public:
     Buffer vertex_buffer;
     VkDeviceAddress vertex_buffer_address;
     Buffer index_buffer;
@@ -25,3 +34,16 @@ class GPUMeshBuffers {
     void cleanup();
 };
 
+class Mesh {
+public:
+    std::vector<MeshVertex> vertices;
+    std::vector<uint32_t> indices;
+    GPUMeshBuffers gpu_buffers;
+
+    void upload_to_GPU(Renderer* renderer);
+};
+
+namespace PrimitiveShapes {
+    Mesh Rectangle(float width, float height);
+    Mesh Triangle(float base, float height, float skew);
+}

@@ -53,7 +53,7 @@ public:
     PipelineBuilder& set_config(PipelineConfig config);
     PipelineBuilder& set_shader(Shader shader);
 	PipelineBuilder& set_input_topology(VkPrimitiveTopology topology);
-	PipelineBuilder& seet_polygon_mode(VkPolygonMode mode);
+	PipelineBuilder& set_polygon_mode(VkPolygonMode mode);
 	PipelineBuilder& set_cull_mode(VkCullModeFlags cull_mode, VkFrontFace front_face);
 	PipelineBuilder& set_multisampling(VkSampleCountFlagBits sample_count);
 	PipelineBuilder& set_blending(bool enable);
@@ -61,8 +61,8 @@ public:
 	PipelineBuilder& set_depth_attachment_format(VkFormat format);
 	PipelineBuilder& set_depth_test(VkCompareOp compare_op = VK_COMPARE_OP_NEVER);
 	PipelineBuilder& set_vertex_input_state(VkPipelineVertexInputStateCreateInfo create_info);
-	PipelineBuilder& add_descriptors(const std::vector<VkDescriptorSetLayout> descriptors);
-	PipelineBuilder& add_push_constants(const std::vector<VkPushConstantRange> push_constants);
+	PipelineBuilder& add_descriptor(VkDescriptorSetLayout descriptor);
+	PipelineBuilder& add_push_constant(VkPushConstantRange push_constant);
 	static VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info();
 
     Device* device;

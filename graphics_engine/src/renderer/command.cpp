@@ -152,11 +152,11 @@ void ImmediateCommand::run_command(std::function<void(VkCommandBuffer cmd)>&& fu
 	VkSubmitInfo2 submit_info{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
 		.pNext = nullptr,
-		.waitSemaphoreInfoCount = 1,
+		.waitSemaphoreInfoCount = 0,
 		.pWaitSemaphoreInfos = nullptr,
 		.commandBufferInfoCount = 1,
 		.pCommandBufferInfos = &command_submit_info,
-		.signalSemaphoreInfoCount = 1,
+		.signalSemaphoreInfoCount = 0,
 		.pSignalSemaphoreInfos = nullptr
 	};
 

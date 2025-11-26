@@ -5,9 +5,6 @@
 #include "vulkan/vulkan_core.h"
 
 void Buffer::cleanup() {
-    if (mapped_data != nullptr)
-        unmap();
-
     vmaDestroyBuffer(device_memory_manager->allocator, handle, allocation);
 }
 
