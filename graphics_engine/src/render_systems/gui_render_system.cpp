@@ -22,7 +22,7 @@ void GuiRenderSystem::initialize(Renderer* renderer) {
 	ImGui::CreateContext();
 
 	// Initializes ImGui for SDL
-	ImGui_ImplSDL2_InitForVulkan(renderer->window.sdl_window);
+	ImGui_ImplSDL3_InitForVulkan(renderer->window.sdl_window);
 
 	// Initializes ImGui for Vulkan
 	VkPipelineRenderingCreateInfoKHR pipeline_rendering_info{
@@ -30,21 +30,22 @@ void GuiRenderSystem::initialize(Renderer* renderer) {
 		.colorAttachmentCount = 1,
 		.pColorAttachmentFormats = &renderer->swapchain.image_format
 	};
+
 	ImGui_ImplVulkan_InitInfo vulkan_init{
 		.Instance = renderer->instance.handle,
 		.PhysicalDevice = renderer->device.physical_device,
 		.Device = renderer->device.logical_device,
+        .QueueFamily = renderer->device.queue_indices.graphics_family.value(),
 		.Queue = renderer->device.graphics_queue,
 		.DescriptorPool = descriptor_pool.handle,
 		.MinImageCount = renderer->frames_in_flight,
 		.ImageCount = renderer->frames_in_flight,
-        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 		.UseDynamicRendering = true,
-		.PipelineRenderingCreateInfo = pipeline_rendering_info
 	};
-	ImGui_ImplVulkan_Init(&vulkan_init);
 
-	ImGui_ImplVulkan_CreateFontsTexture();
+    vulkan_init.PipelineInfoMain.PipelineRenderingCreateInfo = pipeline_rendering_info;
+
+	ImGui_ImplVulkan_Init(&vulkan_init);
 }
 
 void GuiRenderSystem::render(Command* command) {
@@ -57,7 +58,7 @@ void GuiRenderSystem::render(Command* command) {
 
 void GuiRenderSystem::start_frame() {
 	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplSDL2_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 }
 
@@ -67,7 +68,7 @@ void GuiRenderSystem::end_frame() {
 
 void GuiRenderSystem::cleanup() {
 	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
     descriptor_pool.cleanup();
 }

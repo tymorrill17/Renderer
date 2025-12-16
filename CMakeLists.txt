@@ -9,51 +9,36 @@ if (POLICY CMP0141)
 endif()
 
 # target_link_libraries() allows use with targets in other directories
-# (to use compile_project_shaders in any CMakeLists file)
 if(POLICY CMP0079)
     cmake_policy(SET CMP0079 NEW)
 endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # output compile_commands.json to properly set up clangd for use in neovim (if applicable)
 
-# Sets C++ Standard to 23
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# output compile_commands.json to properly set up clangd for use in neovim (if applicable)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# STEP 1) ENTER THE NAME OF THE PROJECT
 set (PROJECT_NAME "Renderer")
-project(${PROJECT_NAME})
+project("${PROJECT_NAME}")
 
-add_compile_definitions(ROOT_DIR="${PROJECT_SOURCE_DIR}")
-add_compile_definitions(SHADER_DIR="${PROJECT_SOURCE_DIR}/shaders/")
-
-# set executable output directory
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin/")
-
-# STEP 2) Create and define executable
-# Create the executable
-add_executable(${PROJECT_NAME})
+# compile definitions
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin") # Set folder to output executables
+add_executable("${PROJECT_NAME}")
 
 # Project-specific include directories
-target_include_directories(${PROJECT_NAME} PUBLIC
-    "${PROJECT_SOURCE_DIR}/include/"
-)
+target_include_directories("${PROJECT_NAME}" PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 # Add project source files
-file(GLOB_RECURSE PROJECT_SOURCES
-    "${PROJECT_SOURCE_DIR}/src/*.cpp"
+file(GLOB_RECURSE PROJECT_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE PROJECT_HEADERS "${PROJECT_SOURCE_DIR}/include/*.h")
+target_sources("${PROJECT_NAME}" PRIVATE "${PROJECT_SOURCES}" "${PROJECT_HEADERS}")
+
+add_compile_definitions(
+    SHADER_DIR="${PROJECT_SOURCE_DIR}/shaders/"
+    ROOT_DIR="${PROJECT_SOURCE_DIR}"
 )
 
-target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
+add_subdirectory(graphics_engine)
+target_link_libraries("${PROJECT_NAME}" PUBLIC GraphicsEngine)
 
-# STEP 3) Add any subtree directories
-add_subdirectory(graphics_engine) # Contains all third-party libraries
-
-# Link against the engine
-target_link_libraries(${PROJECT_NAME} PRIVATE GraphicsEngine)
-
-# Set output name
 set(ExecutableName "renderer")
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${ExecutableName})
+set_target_properties("${PROJECT_NAME}" PROPERTIES OUTPUT_NAME "${ExecutableName}")
 

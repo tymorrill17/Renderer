@@ -33,7 +33,7 @@ public:
     void cleanup();
 
     void build_shader_from_file(const std::string& filepath);
-    void build_shader_from_code(const std::string& filepath);
+    void build_shader_from_code(const std::string& shader_name);
 
 	static VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info(VkShaderStageFlagBits stage, VkShaderModule shader);
 

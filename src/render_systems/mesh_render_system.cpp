@@ -3,11 +3,13 @@
 #include "renderer/mesh.h"
 #include "utility/logger.h"
 
+#ifdef SHADER_DIR
+static const std::string shader_directory{SHADER_DIR};
+#endif
+
 void MeshRenderSystem::initialize(Renderer* renderer) {
     // Start building the mesh render pipeline
     renderer->pipeline_builder.clear();
-
-	std::string shader_directory = static_cast<std::string>(SHADER_DIR);
 
 	Shader basic_vertex_shader;
     basic_vertex_shader.initialize(&renderer->device, &renderer->shader_manager, VK_SHADER_STAGE_VERTEX_BIT, "vertex_main");

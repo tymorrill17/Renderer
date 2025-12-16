@@ -1,8 +1,7 @@
 #pragma once
 #define SDL_MAIN_HANDLED
 #include <cstdint>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL3/SDL.h>
 #include <vulkan/vulkan.h>
 #include "utility/logger.h"
 #include <string>

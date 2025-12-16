@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fwd.hpp"
+#include "glm/fwd.hpp"
 #include "glm/glm.hpp"
 #include "renderer/renderer.h"
 #include "renderer/buffer.h"

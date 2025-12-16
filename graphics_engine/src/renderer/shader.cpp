@@ -1,8 +1,8 @@
 #include "renderer/shader.h"
 #include "renderer/device.h"
-#include "slang/slang-com-ptr.h"
-#include "slang/slang.h"
-#include "slang/slang-com-helper.h"
+#include "slang-com-ptr.h"
+#include "slang.h"
+#include "slang-com-helper.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
 #include <cmath>
@@ -14,7 +14,7 @@
 
 #ifdef SHADER_DIR
 // Global variable for the shaders folder
-const std::string shader_directory(SHADER_DIR);
+static const std::string shader_directory{SHADER_DIR};
 #endif // SHADER_DIR
 
 
@@ -32,14 +32,20 @@ void ShaderManager::initialize() {
 }
 
 void ShaderManager::find_shaders() {
+
     // We want to account for changes in files if we are recompiling, so clear the current list of shaders
     found_shaders.clear();
 
     // Iterate over the recursive directory iterator to find all shader files in ${Project_Source}/shaders/directory
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(shader_directory)) {
-        if (!entry.is_directory() && entry.path().extension() == ".slang") {
-            found_shaders.push_back(entry.path().stem().string()); // push back the stem (filename without extension)
+    try {
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(shader_directory)) {
+            if (!entry.is_directory() && entry.path().extension() == ".slang") {
+                found_shaders.push_back(entry.path().stem().string()); // push back the stem (filename without extension)
+            }
         }
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << '\n';
+        std::cerr << "Path: " << e.path1() << '\n';
     }
 }
 
@@ -225,20 +231,20 @@ void Shader::build_shader_from_file(const std::string& filepath) {
     Logger::log("Shader successfully loaded: " + filepath);
 }
 
-void Shader::build_shader_from_code(const std::string& shader) {
+void Shader::build_shader_from_code(const std::string& shader_name) {
 	VkShaderModuleCreateInfo create_info {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .codeSize = shader_manager->get_shader_code_length(shader),
-        .pCode = shader_manager->get_shader_code(shader)
+        .codeSize = shader_manager->get_shader_code_length(shader_name),
+        .pCode = shader_manager->get_shader_code(shader_name)
     };
 
 	if (vkCreateShaderModule(device->logical_device, &create_info, nullptr, &module) != VK_SUCCESS) {
         Logger::logError("Error: vkCreateShaderModule() failed");
 	}
 
-    Logger::log("Shader successfully loaded: " + shader);
+    Logger::log("Shader successfully loaded: " + shader_name);
 }
 
 void Shader::cleanup() {

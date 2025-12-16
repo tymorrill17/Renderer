@@ -1,12 +1,14 @@
-#include "fwd.hpp"
+#include "glm/fwd.hpp"
 #include "render_systems/gui_render_system.h"
 #include "render_systems/mesh_render_system.h"
 #include "renderer/renderer.h"
 #include "renderer/mesh.h"
 #include "utility/window.h"
 #include "utility/input_manager.h"
+#include "utility/asset_loading.h"
 #include <cstdint>
 #include <string>
+#include <SDL3/SDL_main.h>
 
 #define ENABLE_GUI
 
@@ -14,11 +16,12 @@ static const uint32_t APPLICATION_WIDTH = 1920;
 static const uint32_t APPLICATION_HEIGHT = 1080;
 
 static std::vector<const char*> requested_validation_layers = {
-	"VK_LAYER_KHRONOS_validation" // Standard validation layer preset
+	"VK_LAYER_KHRONOS_validation", // Standard validation layer preset
 };
 
-static std::vector<const char*> requestedDeviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME // Necessary extension to use swapchains
+static std::vector<const char*> requested_device_extensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME, // Necessary extension to use swapchains
+    VK_GOOGLE_USER_TYPE_EXTENSION_NAME
 };
 
 int main (int argc, char *argv[]) {
@@ -31,7 +34,7 @@ int main (int argc, char *argv[]) {
         .window_width      = APPLICATION_WIDTH,
         .window_height     = APPLICATION_HEIGHT,
         .validation_layers = &requested_validation_layers,
-        .device_extensions = &requestedDeviceExtensions
+        .device_extensions = &requested_device_extensions
     };
 
     renderer.initialize(&renderer_info);
@@ -48,6 +51,8 @@ int main (int argc, char *argv[]) {
     static Gui& gui = Gui::get_gui();
 
     // Create meshes
+
+    //AssetManager::load_mesh_GLTF(&renderer, " ");
 
     Mesh test_rectangle = PrimitiveShapes::Rectangle(1.0f, 1.0f);
     test_rectangle.upload_to_GPU(&renderer);

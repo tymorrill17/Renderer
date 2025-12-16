@@ -1,7 +1,9 @@
 #include "renderer/device.h"
+#include "SDL3/SDL_error.h"
 #include "renderer/swapchain.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
+#include "SDL3/SDL_vulkan.h"
 #include <iostream>
 
 static VkPhysicalDeviceFeatures device_features{};
@@ -11,6 +13,8 @@ static VkPhysicalDeviceVulkan13Features features_13{ .sType = VK_STRUCTURE_TYPE_
 static VkPhysicalDeviceVulkan12Features features_12{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
 													 .descriptorIndexing = true,
 													 .bufferDeviceAddress = true };
+static VkPhysicalDeviceVulkan11Features features_11{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+													 .shaderDrawParameters = true };
 
 QueueFamilyIndices QueueFamilyIndices::find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
 	QueueFamilyIndices indices;
@@ -48,11 +52,12 @@ void Device::initialize(Instance* instance, Window* window, const std::vector<co
     this->instance = instance;
     this->window = window;
 
-	// Create the surface for the passed-in window. I don't necessarily like it being here, but we are keeping window creation separate from the engine
+    // Create the surface for the passed-in window. I don't necessarily like it being here, but we are keeping window creation separate from the engine
     // and the surface needs an instance to be created
-	if (!SDL_Vulkan_CreateSurface(window->sdl_window, instance->handle, &window_surface)) {
+    if (!SDL_Vulkan_CreateSurface(window->sdl_window, instance->handle, nullptr, &window_surface)) {
+        SDL_GetError();
         Logger::logError("Failed to create window surface!");
-	}
+    }
 
 	// Select the physical device to be used for rendering
 	physical_device = select_physical_device(instance->handle, window_surface, requested_extensions);
@@ -84,7 +89,8 @@ void Device::initialize(Instance* instance, Window* window, const std::vector<co
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
 		.features = device_features };
 	features_12.pNext = &features_13;
-	version_features.pNext = &features_12;
+    features_11.pNext = &features_12;
+	version_features.pNext = &features_11;
 
 	// Set up the logical device
 	VkDeviceCreateInfo device_create_info{
@@ -109,7 +115,7 @@ void Device::initialize(Instance* instance, Window* window, const std::vector<co
 }
 
 void Device::cleanup() {
-    vkDestroySurfaceKHR(instance->handle, window_surface, nullptr);
+    SDL_Vulkan_DestroySurface(instance->handle, window_surface, nullptr);
 	vkDestroyDevice(logical_device, nullptr);
 }
 

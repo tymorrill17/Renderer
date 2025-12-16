@@ -1,6 +1,7 @@
 #include "utility/window.h"
-#include "SDL2/SDL_vulkan.h"
+#include "SDL3/SDL_video.h"
 #include "utility/logger.h"
+#include <SDL3/SDL_vulkan.h>
 #include <cstdint>
 #include <string>
 
@@ -19,11 +20,9 @@ void Window::initialize(uint32_t width, uint32_t height, const std::string& name
 	SDL_Init(SDL_INIT_VIDEO);
 
 	// Create a window compatible with Vulkan surfaces
-	SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+	SDL_WindowFlags window_flags = (SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 	sdl_window = SDL_CreateWindow(
 		name.c_str(),
-		SDL_WINDOWPOS_UNDEFINED,
-		SDL_WINDOWPOS_UNDEFINED,
 		extent.width,
 		extent.height,
 		window_flags
@@ -42,11 +41,10 @@ void Window::cleanup() {
 
 void Window::get_required_instance_extensions(std::vector<const char*>* extensions) {
 	uint32_t sdl_required_extension_count = 0;
-	SDL_Vulkan_GetInstanceExtensions(nullptr, &sdl_required_extension_count, nullptr);
-	std::vector<const char*> sdl_required_extensions(sdl_required_extension_count);
-	SDL_Vulkan_GetInstanceExtensions(nullptr, &sdl_required_extension_count, sdl_required_extensions.data());
+	SDL_Vulkan_GetInstanceExtensions(&sdl_required_extension_count);
+	const char* const* sdl_required_extensions = SDL_Vulkan_GetInstanceExtensions(&sdl_required_extension_count);
 
-	extensions->assign(sdl_required_extensions.data(), sdl_required_extensions.data() + sdl_required_extension_count);
+	extensions->assign(sdl_required_extensions, sdl_required_extensions + sdl_required_extension_count);
 }
 
 void Window::update_after_resize() {

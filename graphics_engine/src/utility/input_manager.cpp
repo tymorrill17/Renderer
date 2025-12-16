@@ -1,4 +1,6 @@
 #include "utility/input_manager.h"
+#include "SDL3/SDL_events.h"
+#include "SDL3/SDL_video.h"
 
 void InputManager::initialize(Window* window) {
     this->window = window;
@@ -13,13 +15,13 @@ void InputManager::process_inputs() {
         gui.process_inputs(&sdl_event);
 
 		switch (sdl_event.type) {
-	 	case SDL_QUIT:
+	 	case SDL_EVENT_QUIT:
 			window->window_should_close = true;
 			break;
-		case SDL_MOUSEMOTION:
+		case SDL_EVENT_MOUSE_MOTION:
 			update_mouse_position(&sdl_event);
 			break;
-		case SDL_MOUSEBUTTONDOWN:
+		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			switch (sdl_event.button.button) {
 			case SDL_BUTTON_LEFT:
 				dispatch_event(InputEvent::left_mouse_down);
@@ -29,7 +31,7 @@ void InputManager::process_inputs() {
 				break;
 			}
 			break;
-		case SDL_MOUSEBUTTONUP:
+		case SDL_EVENT_MOUSE_BUTTON_UP:
 			switch (sdl_event.button.button) {
 			case SDL_BUTTON_LEFT:
 				dispatch_event(InputEvent::left_mouse_up);
@@ -39,25 +41,21 @@ void InputManager::process_inputs() {
 				break;
 			}
 			break;
-		case SDL_WINDOWEVENT:
-			switch (sdl_event.window.event) {
-			case SDL_WINDOWEVENT_MINIMIZED:
-                window->pause_rendering = true;
-				break;
-			case SDL_WINDOWEVENT_RESTORED:
-                window->pause_rendering = false;
-				break;
-			}
-			break;
-		case SDL_KEYDOWN:
-			switch (sdl_event.key.keysym.sym) {
+		case SDL_EVENT_WINDOW_MINIMIZED:
+            window->pause_rendering = true;
+            break;
+        case SDL_EVENT_WINDOW_RESTORED:
+            window->pause_rendering = false;
+            break;
+		case SDL_EVENT_KEY_DOWN:
+			switch (sdl_event.key.key) {
 			case SDLK_F11:
 				if (window->fullscreen) {
-					SDL_SetWindowFullscreen(window->sdl_window, 0);
+					SDL_SetWindowFullscreen(window->sdl_window, false);
                     window->fullscreen = false;
 				}
 				else {
-					SDL_SetWindowFullscreen(window->sdl_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+					SDL_SetWindowFullscreen(window->sdl_window, true);
                     window->fullscreen = true;
 				}
 				break;
@@ -71,8 +69,8 @@ void InputManager::process_inputs() {
 				break;
 			}
 			break;
-		case SDL_KEYUP:
-			switch (sdl_event.key.keysym.sym) {
+		case SDL_EVENT_KEY_UP:
+			switch (sdl_event.key.key) {
 			default:
 				break;
 			}

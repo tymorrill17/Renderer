@@ -118,7 +118,7 @@ void Renderer::draw() {
 	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, nullptr);
 
 	// Transition draw image to a color attachment
-    Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	VkViewport viewport{
 		.x = 0.0f,

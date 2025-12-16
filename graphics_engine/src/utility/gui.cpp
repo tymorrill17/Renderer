@@ -1,7 +1,7 @@
 #include "utility/gui.h"
 
 void Gui::process_inputs(SDL_Event* event) {
-	ImGui_ImplSDL2_ProcessEvent(event);
+	ImGui_ImplSDL3_ProcessEvent(event);
 }
 
 void Gui::add_widget(const std::string& window_name, const std::function<void()>& widget) {
