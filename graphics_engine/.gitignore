@@ -4,3 +4,6 @@ out/
 build/
 shaders/*.spv
 renderdoc/
+dependencies/*
+
+!CMakeLists.txt
