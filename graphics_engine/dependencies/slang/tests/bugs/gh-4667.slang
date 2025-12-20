@@ -1,4 +1,0 @@
-//TEST:SIMPLE:
-\
-\
-int x;
