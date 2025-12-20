@@ -3,6 +3,7 @@
 #include "render_systems/mesh_render_system.h"
 #include "renderer/renderer.h"
 #include "renderer/mesh.h"
+#include "utility/logger.h"
 #include "utility/window.h"
 #include "utility/input_manager.h"
 #include "utility/asset_loading.h"
@@ -52,17 +53,21 @@ int main (int argc, char *argv[]) {
 
     // Create meshes
 
-    //AssetManager::load_mesh_GLTF(&renderer, " ");
+    PrimitiveMesh primitive_rect = PrimitiveMesh::Rectangle2D(1.0f, 1.0f);
+    GPUMesh test_rectangle;
+    test_rectangle.upload_to_GPU(&renderer, primitive_rect.vertices, primitive_rect.indices);
 
-    Mesh test_rectangle = PrimitiveShapes::Rectangle(1.0f, 1.0f);
-    test_rectangle.upload_to_GPU(&renderer);
+    auto test_meshes = renderer.asset_manager.load_mesh_GLTF("../assets/basicmesh.glb");
 
     GPUDrawPushConstants push_constants{
         .world_matrix = glm::mat4{ 1.0f },
-        .vertex_buffer_address = test_rectangle.gpu_buffers.vertex_buffer_address,
+        .vertex_buffer_address = test_rectangle.vertex_buffer_address,
     };
 
     mesh_render_system.add_renderable(&test_rectangle);
+    for (auto& mesh : *test_meshes) {
+        mesh_render_system.add_renderable(&mesh.get()->GPU_mesh);
+    }
 
     // Main loop
     while (!renderer.window.window_should_close) {
@@ -83,7 +88,8 @@ int main (int argc, char *argv[]) {
 
     renderer.wait_for_idle();
 
-    test_rectangle.gpu_buffers.cleanup();
+    for (auto& mesh : test_meshes.value()) mesh->cleanup();
+    test_rectangle.cleanup();
     gui_render_system.cleanup();
     mesh_render_system.cleanup();
     renderer.cleanup();

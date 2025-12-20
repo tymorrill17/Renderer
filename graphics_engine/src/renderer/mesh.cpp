@@ -1,12 +1,16 @@
 #include "renderer/mesh.h"
 #include "utility/allocator.h"
+#include "renderer/renderer.h"
 #include "utility/logger.h"
 #include <cmath>
 
-void GPUMeshBuffers::upload_to_buffers(Renderer* renderer, std::span<MeshVertex> vertices, std::span<uint32_t> indices)
+void GPUMesh::upload_to_GPU(Renderer* renderer, std::span<MeshVertex> vertices, std::span<uint32_t> indices)
 {
     // TODO: @Error do better error handling here
     if (renderer == nullptr) return;
+
+    vertex_count = vertices.size();
+    index_count  = indices.size();
 
 	const size_t vertex_buffer_size = vertices.size() * sizeof(MeshVertex);
 	const size_t index_buffer_size = indices.size() * sizeof(uint32_t);
@@ -61,21 +65,15 @@ void GPUMeshBuffers::upload_to_buffers(Renderer* renderer, std::span<MeshVertex>
     staging_buffer.cleanup();
 }
 
-void GPUMeshBuffers::cleanup() {
+void GPUMesh::cleanup() {
     vertex_buffer.cleanup();
     index_buffer.cleanup();
 }
 
-// ------------------------- Mesh -------------------------------------
-
-void Mesh::upload_to_GPU(Renderer* renderer) {
-    gpu_buffers.upload_to_buffers(renderer, vertices, indices);
-}
-
 // ------------------------- Primitive Shapes -------------------------
 
-Mesh PrimitiveShapes::Rectangle(float width, float height) {
-    Mesh new_shape;
+PrimitiveMesh PrimitiveMesh::Rectangle2D(float width, float height) {
+    PrimitiveMesh new_shape;
     const float half_x_len = (float)width / 2.0f;
     const float half_y_len = (float)height / 2.0f;
 

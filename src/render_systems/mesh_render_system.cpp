@@ -43,7 +43,7 @@ void MeshRenderSystem::cleanup() {
     simple_mesh_pipeline.cleanup();
 }
 
-void MeshRenderSystem::add_renderable(Mesh* renderable) {
+void MeshRenderSystem::add_renderable(GPUMesh* renderable) {
     renderables.push_back(renderable);
 }
 
@@ -55,7 +55,7 @@ void MeshRenderSystem::render(Command* cmd) {
     vkCmdBindPipeline(cmd->buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, simple_mesh_pipeline.handle);
     if (this->push_constants) vkCmdPushConstants(cmd->buffer, simple_mesh_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), push_constants);
     for (auto renderable : this->renderables) {
-        vkCmdBindIndexBuffer(cmd->buffer, renderable->gpu_buffers.index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(cmd->buffer, renderable->indices.size(), 1, 0, 0, 0);
+        vkCmdBindIndexBuffer(cmd->buffer, renderable->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(cmd->buffer, renderable->index_count, 1, 0, 0, 0);
     }
 }

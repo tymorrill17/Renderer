@@ -1,8 +1,8 @@
 #include "renderer/shader.h"
 #include "renderer/device.h"
-#include "slang-com-ptr.h"
-#include "slang.h"
-#include "slang-com-helper.h"
+#include "slang/slang-com-ptr.h"
+#include "slang/slang.h"
+#include "slang/slang-com-helper.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
 #include <cmath>

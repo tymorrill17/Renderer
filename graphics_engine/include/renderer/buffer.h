@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/vulkan.h"
-#include "vma/vk_mem_alloc.h"
+#include "vk_mem_alloc.h"
 #include "utility/allocator.h"
 
 
@@ -20,10 +20,10 @@ public:
 
 	void* mapped_data;
 
-	size_t total_bytes; // The total size in bytes of the buffer
+	size_t total_bytes;    // The total size in bytes of the buffer
 	size_t instance_count; // How many instances of the struct being stored by the buffer (usually the number of frames in flight)
 	size_t instance_bytes; // The size in bytes of a single instance of the struct being stored by the buffer
-	size_t alignment; // The device-specific alignment size
+	size_t alignment;      // The device-specific alignment size
 
 	static size_t find_alignment_size(size_t instance_bytes, size_t minimum_offset_alignment);
 };

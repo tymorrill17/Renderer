@@ -8,6 +8,7 @@
 #include "buffer.h"
 #include "descriptor.h"
 #include "pipeline.h"
+#include "utility/asset_loading.h"
 #include "render_systems/render_system.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
@@ -57,6 +58,7 @@ public:
     DescriptorWriter descriptor_writer;
     ShaderManager shader_manager;
     std::vector<RenderSystem*> render_systems;
+    AssetManager asset_manager;
 
     uint32_t frames_in_flight;
     uint32_t frame_number;

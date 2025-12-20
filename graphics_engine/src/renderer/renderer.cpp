@@ -59,6 +59,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     descriptor_layout_builder.initialize(&device);
     descriptor_writer.initialize(&device);
     shader_manager.initialize();
+    asset_manager.initialize(this);
     frame_number = 0;
     frame_index = 0;
 

@@ -12,10 +12,10 @@ public:
     void initialize(Renderer* renderer);
     void cleanup();
 
-    void add_renderable(Mesh* renderable);
+    void add_renderable(GPUMesh* renderable);
     void update_push_constants(GPUDrawPushConstants* push_constants);
 
     Pipeline simple_mesh_pipeline;
-    std::vector<Mesh*> renderables;
+    std::vector<GPUMesh*> renderables;
     GPUDrawPushConstants* push_constants;
 };

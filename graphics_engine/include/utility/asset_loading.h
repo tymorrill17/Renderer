@@ -1,24 +1,32 @@
 #pragma once
 #include "renderer/mesh.h"
-#include "renderer/renderer.h"
 #include <cstdint>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/tools.hpp>
+#include <memory>
 #include <vector>
 #include <optional>
+
+class Renderer;
 
 struct GeometricSurface {
     uint32_t index;
     uint32_t count;
 };
 
-struct MeshAsset {
-    std::string name;
+class MeshAsset {
+public:
+    void cleanup();
 
+    std::string name;
     std::vector<GeometricSurface> surfaces;
-    Mesh mesh;
+    GPUMesh GPU_mesh;
 };
 
-namespace AssetManager {
-    std::optional<std::vector<MeshAsset*>> load_mesh_GLTF(Renderer* renderer, std::filesystem::path filepath);
-}
+class AssetManager {
+public:
+    void initialize(Renderer* renderer);
+    std::optional<std::vector<std::shared_ptr<MeshAsset>>> load_mesh_GLTF(std::filesystem::path filepath);
+
+    Renderer* renderer;
+};

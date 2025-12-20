@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/vulkan.h"
-#include "vma/vk_mem_alloc.h"
+#include "vk_mem_alloc.h"
 #include "utility/allocator.h"
 #include "renderer/command.h"
 #include "utility/logger.h"
