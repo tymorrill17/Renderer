@@ -28,7 +28,8 @@ void GuiRenderSystem::initialize(Renderer* renderer) {
 	VkPipelineRenderingCreateInfoKHR pipeline_rendering_info{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = 1,
-		.pColorAttachmentFormats = &renderer->swapchain.image_format
+		.pColorAttachmentFormats = &renderer->swapchain.image_format,
+        .depthAttachmentFormat = renderer->depth_image.format,
 	};
 
 	ImGui_ImplVulkan_InitInfo vulkan_init{

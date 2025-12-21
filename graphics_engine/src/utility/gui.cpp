@@ -1,4 +1,5 @@
 #include "utility/gui.h"
+#include <iostream>
 
 void Gui::process_inputs(SDL_Event* event) {
 	ImGui_ImplSDL3_ProcessEvent(event);
@@ -9,6 +10,8 @@ void Gui::add_widget(const std::string& window_name, const std::function<void()>
 }
 
 void Gui::construct_windows() {
+    if (widget_dictionary.empty()) return;
+
 	for (auto& [window_name, widgets] : widget_dictionary) {
 		ImGui::Begin(window_name.c_str());
 		for (auto& widget : widgets) {

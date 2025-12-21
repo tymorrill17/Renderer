@@ -32,7 +32,8 @@ void MeshRenderSystem::initialize(Renderer* renderer) {
         .set_multisampling(VK_SAMPLE_COUNT_1_BIT)
         .set_blending(false)
         .set_color_attachment_format(renderer->draw_image.format)
-        .set_depth_attachment_format(VK_FORMAT_UNDEFINED)
+        .set_depth_attachment_format(renderer->depth_image.format)
+        .set_depth_test(VK_COMPARE_OP_GREATER_OR_EQUAL)
         .build();
 
     basic_pixel_shader.cleanup();
@@ -43,7 +44,7 @@ void MeshRenderSystem::cleanup() {
     simple_mesh_pipeline.cleanup();
 }
 
-void MeshRenderSystem::add_renderable(GPUMesh* renderable) {
+void MeshRenderSystem::add_renderable(std::shared_ptr<MeshAsset> renderable) {
     renderables.push_back(renderable);
 }
 
@@ -55,7 +56,7 @@ void MeshRenderSystem::render(Command* cmd) {
     vkCmdBindPipeline(cmd->buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, simple_mesh_pipeline.handle);
     if (this->push_constants) vkCmdPushConstants(cmd->buffer, simple_mesh_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), push_constants);
     for (auto renderable : this->renderables) {
-        vkCmdBindIndexBuffer(cmd->buffer, renderable->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(cmd->buffer, renderable->index_count, 1, 0, 0, 0);
+        vkCmdBindIndexBuffer(cmd->buffer, renderable->GPU_mesh.index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(cmd->buffer, renderable->surfaces[0].count, 1, renderable->surfaces[0].index, 0, 0);
     }
 }

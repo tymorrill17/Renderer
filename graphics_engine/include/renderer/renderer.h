@@ -50,7 +50,8 @@ public:
     Swapchain swapchain;
     PipelineBuilder pipeline_builder;
     std::vector<FrameSync> frame_sync;
-    DrawImage draw_image;
+    AllocatedImage draw_image;
+    AllocatedImage depth_image;
     CommandPool command_pool;
     std::vector<Command> frame_command;
     ImmediateCommand immediate_command;

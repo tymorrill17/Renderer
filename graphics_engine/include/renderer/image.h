@@ -14,15 +14,17 @@ public:
     VkImageLayout layout;
     VkExtent3D extent;
     VkFormat format;
+	VkImageAspectFlags aspect_flags;
 };
 
 namespace Image {
     void transition_image(Command* cmd, ImageType* image, VkImageLayout new_layout);
 	void copy_image_to_GPU(Command* cmd, ImageType* src, ImageType* dst);
-	VkRenderingAttachmentInfoKHR attachment_info(VkImageView image_view, VkClearValue* clear_value, VkImageLayout image_layout);
+	VkRenderingAttachmentInfoKHR color_attachment_info(VkImageView image_view, VkClearValue* clear_value, VkImageLayout image_layout);
+	VkRenderingAttachmentInfoKHR depth_attachment_info(VkImageView image_view, VkImageLayout image_layout);
 };
 
-class DrawImage : public ImageType {
+class AllocatedImage : public ImageType {
 public:
     void initialize(Device* device, DeviceMemoryManager* device_memory_manager,
 		VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
@@ -38,7 +40,6 @@ public:
 	VkImageUsageFlags usage_flags;
 	VmaMemoryUsage vma_memory_usage;
 	VkMemoryAllocateFlags vk_memory_usage;
-	VkImageAspectFlags aspect_flags;
 
 private:
     void create_image();

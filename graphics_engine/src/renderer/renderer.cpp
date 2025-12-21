@@ -47,6 +47,17 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
         VK_IMAGE_ASPECT_COLOR_BIT
     );
 
+    depth_image.initialize(
+        &device,
+        &device_memory_manager,
+        VkExtent3D{ window.extent.width, window.extent.height, 1 },
+        VK_FORMAT_D32_SFLOAT,
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VMA_MEMORY_USAGE_GPU_ONLY,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        VK_IMAGE_ASPECT_DEPTH_BIT
+    );
+
     command_pool.initialize(&device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     frame_command.reserve(frames_in_flight);
     for (int i_frame = 0; i_frame < frames_in_flight; i_frame++) {
@@ -75,6 +86,7 @@ void Renderer::cleanup() {
     command_pool.cleanup();
     immediate_command.cleanup();
     draw_image.cleanup();
+    depth_image.cleanup();
     for (int i_frame = 0; i_frame < frames_in_flight; i_frame++) {
         frame_sync[i_frame].cleanup();
     }
@@ -113,10 +125,12 @@ void Renderer::draw() {
 
 	// Transition the draw image to a writable format
     Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_GENERAL);
+    Image::transition_image(cmd, &depth_image, VK_IMAGE_LAYOUT_GENERAL);
 
 	VkClearValue clear_value{ .color{ 0.0f, 0.0f, 0.0f, 1.0f } };
-	VkRenderingAttachmentInfoKHR color_attachment_info = Image::attachment_info(draw_image.view, &clear_value, VK_IMAGE_LAYOUT_GENERAL);
-	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, nullptr);
+	VkRenderingAttachmentInfoKHR color_attachment_info = Image::color_attachment_info(draw_image.view, &clear_value, VK_IMAGE_LAYOUT_GENERAL);
+	VkRenderingAttachmentInfoKHR depth_attachment_info = Image::depth_attachment_info(depth_image.view, VK_IMAGE_LAYOUT_GENERAL);
+	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, &depth_attachment_info);
 
 	// Transition draw image to a color attachment
     // Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);

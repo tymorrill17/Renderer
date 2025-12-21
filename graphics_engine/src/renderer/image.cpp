@@ -6,7 +6,7 @@
 // Image --------------------------------------------------------------------------------------------------
 
 void Image::transition_image(Command* cmd, ImageType* image, VkImageLayout new_layout) {
-	VkImageAspectFlags aspect_mask = (new_layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	VkImageAspectFlags aspect_mask = image->aspect_flags;
 	VkImageSubresourceRange subresource_range{
 		.aspectMask = aspect_mask,
 		.baseMipLevel = 0,
@@ -54,12 +54,12 @@ void Image::copy_image_to_GPU(Command* cmd, ImageType* src, ImageType* dst) {
 	blit_region.dstOffsets[1].y = dst->extent.height;
 	blit_region.dstOffsets[1].z = 1;
 
-	blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blit_region.srcSubresource.aspectMask = src->aspect_flags;
 	blit_region.srcSubresource.baseArrayLayer = 0;
 	blit_region.srcSubresource.layerCount = 1;
 	blit_region.srcSubresource.mipLevel = 0;
 
-	blit_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blit_region.dstSubresource.aspectMask = dst->aspect_flags;
 	blit_region.dstSubresource.baseArrayLayer = 0;
 	blit_region.dstSubresource.layerCount = 1;
 	blit_region.dstSubresource.mipLevel = 0;
@@ -79,7 +79,7 @@ void Image::copy_image_to_GPU(Command* cmd, ImageType* src, ImageType* dst) {
 	vkCmdBlitImage2(cmd->buffer, &blit_info);
 }
 
-VkRenderingAttachmentInfoKHR Image::attachment_info(VkImageView image_view, VkClearValue* clear_value, VkImageLayout image_layout) {
+VkRenderingAttachmentInfoKHR Image::color_attachment_info(VkImageView image_view, VkClearValue* clear_value, VkImageLayout image_layout) {
 	VkRenderingAttachmentInfoKHR rendering_attachment_info{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
 		.pNext = nullptr,
@@ -92,9 +92,22 @@ VkRenderingAttachmentInfoKHR Image::attachment_info(VkImageView image_view, VkCl
 	return rendering_attachment_info;
 }
 
-// DrawImage --------------------------------------------------------------------------------------------------
+VkRenderingAttachmentInfoKHR Image::depth_attachment_info(VkImageView image_view, VkImageLayout image_layout) {
+	VkRenderingAttachmentInfoKHR depth_attachment_info{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+		.pNext = nullptr,
+		.imageView = image_view,
+		.imageLayout = image_layout,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+	};
+    depth_attachment_info.clearValue.depthStencil.depth = 0.0f;
+	return depth_attachment_info;
+}
 
-void DrawImage::initialize(Device* device, DeviceMemoryManager* device_memory_manager,
+// AllocatedImage --------------------------------------------------------------------------------------------------
+
+void AllocatedImage::initialize(Device* device, DeviceMemoryManager* device_memory_manager,
 	VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
 	VmaMemoryUsage vma_memory_usage, VkMemoryAllocateFlags vk_memory_usage,
 	VkImageAspectFlags aspect_flags) {
@@ -112,12 +125,12 @@ void DrawImage::initialize(Device* device, DeviceMemoryManager* device_memory_ma
 	create_image();
 }
 
-void DrawImage::cleanup() {
+void AllocatedImage::cleanup() {
 	vkDestroyImageView(device->logical_device, view, nullptr);
 	vmaDestroyImage(device_memory_manager->allocator, handle, allocation);
 }
 
-void DrawImage::create_image() {
+void AllocatedImage::create_image() {
 	VkImageCreateInfo image_info{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		.pNext = nullptr,
@@ -139,7 +152,7 @@ void DrawImage::create_image() {
 	if (vmaCreateImage(device_memory_manager->allocator, &image_info, &alloc_info, &handle, &allocation, nullptr) != VK_SUCCESS) {
         Logger::logError("Failed to create and allocate image!");
 	}
-    vmaSetAllocationName(device_memory_manager->allocator, allocation, "DrawImage");
+    // vmaSetAllocationName(device_memory_manager->allocator, allocation, "AllocatedImage");
 
 	VkImageSubresourceRange subresource_range{
 		.aspectMask = aspect_flags,
@@ -163,7 +176,7 @@ void DrawImage::create_image() {
 	}
 }
 
-void DrawImage::recreate(VkExtent3D extent) {
+void AllocatedImage::recreate(VkExtent3D extent) {
 	cleanup();
 	this->extent = extent;
     this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -179,10 +192,11 @@ void SwapchainImage::initialize(Device* device, VkImage image, VkExtent3D extent
     this->extent = extent;
     this->format = format;
     this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    this->aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
 
 	// Create associated image view. This is going to be a color aspect image view
 	VkImageSubresourceRange subresource_range{
-		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		.aspectMask = this->aspect_flags,
 		.baseMipLevel = 0,
 		.levelCount = 1,
 		.baseArrayLayer = 0,
