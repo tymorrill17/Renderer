@@ -2,7 +2,6 @@
 
 #include "glm/glm.hpp"
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 class Camera {
 public:
@@ -26,13 +25,13 @@ public:
 	// @param position - position of the camera
 	// @param direction - direction the camera is pointing
 	// @param up - vector pointing up relative to the camera
-	void set_view_direction(glm::vec3 position, glm::vec3 direction, glm::vec3 up = glm::vec3{0.0f, -1.0f, 0.0f});
+	void set_view_direction(glm::vec3 position, glm::vec3 direction, glm::vec3 up = glm::vec3{0.0f, 1.0f, 0.0f});
 
 	// @brief fills the view matrix given a camera position and a target position
 	// @param position - position of the camera
 	// @param direction - direction the camera is pointing
 	// @param up - vector pointing up relative to the camera
-	void set_view_target(glm::vec3 position, glm::vec3 target, glm::vec3 up = glm::vec3{ 0.0f, -1.0f, 0.0f });
+	void set_view_target(glm::vec3 position, glm::vec3 target, glm::vec3 up = glm::vec3{0.0f, 1.0f, 0.0f});
 
 	// @brief fills the view matrix given a camera position and a set of Euler angles
 	// @param position - position of the camera

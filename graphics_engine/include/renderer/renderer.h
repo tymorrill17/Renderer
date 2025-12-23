@@ -55,8 +55,7 @@ public:
     CommandPool command_pool;
     std::vector<Command> frame_command;
     ImmediateCommand immediate_command;
-    DescriptorLayoutBuilder descriptor_layout_builder;
-    DescriptorWriter descriptor_writer;
+    DescriptorBuilder descriptor_builder;
     ShaderManager shader_manager;
     std::vector<RenderSystem*> render_systems;
     AssetManager asset_manager;

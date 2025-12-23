@@ -18,6 +18,14 @@ void PipelineBuilder::initialize(Device* device) {
 
 Pipeline PipelineBuilder::build() {
 
+    VkPipelineVertexInputStateCreateInfo vertex_input_state{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount   = (uint32_t)config.vertex_binding_descriptions.size(),
+        .pVertexBindingDescriptions      = config.vertex_binding_descriptions.data(),
+        .vertexAttributeDescriptionCount = (uint32_t)config.vertex_attribute_descriptions.size(),
+        .pVertexAttributeDescriptions    = config.vertex_attribute_descriptions.data(),
+    };
+
     VkPipelineViewportStateCreateInfo viewport_state{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .pNext = nullptr,
@@ -33,11 +41,6 @@ Pipeline PipelineBuilder::build() {
         .logicOp = VK_LOGIC_OP_COPY,
         .attachmentCount = 1,
         .pAttachments = &config.color_blend_attachment
-    };
-
-    // Not used yet so just initialize it to default
-    VkPipelineVertexInputStateCreateInfo vertex_input_info{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
     };
 
     // Dynamic states allow us to specify these things at command recording instead of pipeline creation
@@ -59,7 +62,7 @@ Pipeline PipelineBuilder::build() {
         .pNext = &config.rendering_info,
         .stageCount = static_cast<uint32_t>(config.shader_modules.size()),
         .pStages = config.shader_modules.data(),
-        .pVertexInputState = &vertex_input_info,
+        .pVertexInputState = &vertex_input_state,
         .pInputAssemblyState = &config.input_assembly,
         .pViewportState = &viewport_state,
         .pRasterizationState = &config.rasterizer,
@@ -86,7 +89,6 @@ Pipeline PipelineBuilder::build() {
 
 void PipelineBuilder::clear() {
     config.shader_modules.clear();
-    config.vertex_input_info = { .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
     config.input_assembly = { .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
     config.rasterizer = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
     config.color_blend_attachment = {};
@@ -96,6 +98,8 @@ void PipelineBuilder::clear() {
     config.color_attachment_format = VK_FORMAT_UNDEFINED;
     config.descriptor_set_layouts.clear();
     config.push_constant_ranges.clear();
+    config.vertex_binding_descriptions.clear();
+    config.vertex_attribute_descriptions.clear();
 }
 
 PipelineBuilder& PipelineBuilder::set_config(PipelineConfig config) {
@@ -165,16 +169,11 @@ PipelineBuilder& PipelineBuilder::set_depth_test(VkCompareOp compare_op) {
     config.depth_stencil.depthWriteEnable = compare_op == VK_COMPARE_OP_NEVER ? VK_FALSE : VK_TRUE;
     config.depth_stencil.depthCompareOp = compare_op;
     config.depth_stencil.depthBoundsTestEnable = VK_FALSE;
+    config.depth_stencil.minDepthBounds = 0.0f;
+    config.depth_stencil.maxDepthBounds = 1.0f;
     config.depth_stencil.stencilTestEnable = VK_FALSE;
     config.depth_stencil.front = {};
     config.depth_stencil.back = {};
-    config.depth_stencil.minDepthBounds = 0.0f;
-    config.depth_stencil.maxDepthBounds = 1.0f;
-    return *this;
-}
-
-PipelineBuilder& PipelineBuilder::set_vertex_input_state(VkPipelineVertexInputStateCreateInfo createInfo) {
-    config.vertex_input_info = createInfo;
     return *this;
 }
 
@@ -191,14 +190,33 @@ PipelineBuilder& PipelineBuilder::add_push_constant(VkPushConstantRange push_con
     return *this;
 }
 
-VkPipelineVertexInputStateCreateInfo PipelineBuilder::vertex_input_state_create_info() {
-    VkPipelineVertexInputStateCreateInfo create_info{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .vertexBindingDescriptionCount = 0,
-            .vertexAttributeDescriptionCount = 0
+PipelineBuilder& PipelineBuilder::add_vertex_binding_description(VkVertexInputBindingDescription binding_description) {
+    config.vertex_binding_descriptions.push_back(binding_description);
+    return *this;
+}
+
+PipelineBuilder& PipelineBuilder::add_vertex_attribute_description(VkVertexInputAttributeDescription attribute_description) {
+    config.vertex_attribute_descriptions.push_back(attribute_description);
+    return *this;
+}
+
+VkVertexInputBindingDescription PipelineBuilder::vertex_input_binding_description(uint32_t binding, uint32_t stride, VkVertexInputRate vertex_input_rate) {
+    VkVertexInputBindingDescription binding_description{
+        .binding   = binding,
+        .stride    = stride,
+        .inputRate = vertex_input_rate
     };
-    return create_info;
+    return binding_description;
+}
+
+VkVertexInputAttributeDescription PipelineBuilder::vertex_input_attribute_description(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset) {
+    VkVertexInputAttributeDescription attribute_description{
+        .location = location,
+        .binding = binding,
+        .format = format,
+        .offset = offset
+    };
+    return attribute_description;
 }
 
 //-------------------------- Pipeline Layout --------------------------------//

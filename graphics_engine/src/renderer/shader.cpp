@@ -60,7 +60,9 @@ void ShaderManager::compile_shaders() {
     }
 
     // A session is a more localized context that maintains caching for reuse
-    slang::SessionDesc session_desc{};
+    slang::SessionDesc session_desc{
+        .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR
+    };
 
     // Define a target descriptor
     slang::TargetDesc target_desc{

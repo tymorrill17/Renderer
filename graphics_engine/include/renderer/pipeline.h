@@ -4,6 +4,8 @@
 #include "device.h"
 #include "shader.h"
 #include "vulkan/vulkan_core.h"
+#include <cstdint>
+#include <span>
 
 // PIPELINE ----------------------------------------------------------------------------------------------------------------------------
 
@@ -31,7 +33,6 @@ struct PipelineConfig {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_modules;
 
 	// Pipeline State
-	VkPipelineVertexInputStateCreateInfo vertex_input_info{ .sType=VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 	VkPipelineInputAssemblyStateCreateInfo input_assembly{ .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 	VkPipelineRasterizationStateCreateInfo rasterizer{ .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 	VkPipelineColorBlendAttachmentState color_blend_attachment{};
@@ -42,6 +43,8 @@ struct PipelineConfig {
 
 	std::vector<VkDescriptorSetLayout> descriptor_set_layouts{};
 	std::vector<VkPushConstantRange> push_constant_ranges{};
+    std::vector<VkVertexInputBindingDescription> vertex_binding_descriptions{};
+    std::vector<VkVertexInputAttributeDescription> vertex_attribute_descriptions{};
 };
 
 class PipelineBuilder {
@@ -60,10 +63,13 @@ public:
 	PipelineBuilder& set_color_attachment_format(VkFormat format);
 	PipelineBuilder& set_depth_attachment_format(VkFormat format);
 	PipelineBuilder& set_depth_test(VkCompareOp compare_op = VK_COMPARE_OP_NEVER);
-	PipelineBuilder& set_vertex_input_state(VkPipelineVertexInputStateCreateInfo create_info);
 	PipelineBuilder& add_descriptor(VkDescriptorSetLayout descriptor);
 	PipelineBuilder& add_push_constant(VkPushConstantRange push_constant);
-	static VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info();
+    PipelineBuilder& add_vertex_binding_description(VkVertexInputBindingDescription binding_description);
+    PipelineBuilder& add_vertex_attribute_description(VkVertexInputAttributeDescription attribute_description);
+
+	static VkVertexInputBindingDescription vertex_input_binding_description(uint32_t binding, uint32_t stride, VkVertexInputRate vertex_input_rate);
+	static VkVertexInputAttributeDescription vertex_input_attribute_description(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset);
 
     Device* device;
     PipelineConfig config;

@@ -1,5 +1,7 @@
 #include "renderer/descriptor.h"
+#include "renderer/renderer.h"
 #include "renderer/image.h"
+#include "renderer/buffer.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
 
@@ -56,10 +58,6 @@ void DescriptorLayoutBuilder::initialize(Device* device) {
     this->device = device;
 }
 
-void DescriptorLayoutBuilder::cleanup() {
-    destroy_all_layouts();
-}
-
 DescriptorLayoutBuilder& DescriptorLayoutBuilder::add_binding(uint32_t binding, VkDescriptorType descriptor_type, VkShaderStageFlags shader_stage) {
 	VkDescriptorSetLayoutBinding new_binding{
 		.binding = binding,
@@ -84,28 +82,20 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::build() {
 		.bindingCount = static_cast<uint32_t>(bindings.size()),
 		.pBindings = bindings.data()
 	};
-	VkDescriptorSetLayout layout;
+
+    VkDescriptorSetLayout layout;
+
 	if (vkCreateDescriptorSetLayout(device->logical_device, &descriptor_set_layout_create_info, nullptr, &layout) != VK_SUCCESS) {
         Logger::logError("Failed to build descriptor set layout!");
 	}
-    layout_deletion_queue.push_back(layout);
-	return layout;
-}
 
-void DescriptorLayoutBuilder::destroy_all_layouts() {
-    for (auto& layout : layout_deletion_queue) {
-        vkDestroyDescriptorSetLayout(device->logical_device, layout, nullptr);
-    }
+	return layout;
 }
 
 // ---------------------------------------------- DESCRIPTOR WRITER -----------------------------------------------------------------
 
 void DescriptorWriter::initialize(Device* device) {
     this->device = device;
-}
-
-void DescriptorWriter::cleanup() {
-    clear();
 }
 
 DescriptorWriter& DescriptorWriter::add_image(uint32_t binding, ImageType* image, VkSampler sampler, VkDescriptorType descriptor_type) {
@@ -128,27 +118,27 @@ DescriptorWriter& DescriptorWriter::add_image(uint32_t binding, ImageType* image
 	return *this;
 }
 
-// DescriptorWriter& DescriptorWriter::add_buffer(uint32_t binding, Buffer* buffer, VkDescriptorType descriptor_type, size_t offset, size_t size) {
-// 	VkDescriptorBufferInfo& buffer_info = buffer_infos.emplace_back(VkDescriptorBufferInfo {
-// 		.buffer = buffer->buffer(),
-// 		.offset = offset,
-// 		.range = size
-// 		});
-//
-// 	VkWriteDescriptorSet set_write = {
-// 		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-// 		.dstSet = VK_NULL_HANDLE,
-// 		.dstBinding = binding,
-// 		.descriptorCount = 1,
-// 		.descriptorType = descriptor_type,
-// 		.pBufferInfo = &buffer_info
-// 	};
-//
-// 	set_writes.push_back(set_write);
-// 	return *this;
-// }
+DescriptorWriter& DescriptorWriter::add_buffer(uint32_t binding, Buffer* buffer, VkDescriptorType descriptor_type, size_t offset, size_t size) {
+ 	VkDescriptorBufferInfo& buffer_info = buffer_infos.emplace_back(VkDescriptorBufferInfo {
+ 		.buffer = buffer->handle,
+ 		.offset = offset,
+ 		.range = size
+ 		});
 
-DescriptorWriter& DescriptorWriter::write_descriptor_set(VkDescriptorSet descriptor_set) {
+ 	VkWriteDescriptorSet set_write = {
+ 		.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+ 		.dstSet = VK_NULL_HANDLE,
+ 		.dstBinding = binding,
+ 		.descriptorCount = 1,
+ 		.descriptorType = descriptor_type,
+ 		.pBufferInfo = &buffer_info
+ 	};
+
+ 	set_writes.push_back(set_write);
+ 	return *this;
+ }
+
+DescriptorWriter& DescriptorWriter::write(VkDescriptorSet descriptor_set) {
 	for (VkWriteDescriptorSet& set_write : set_writes) {
 		set_write.dstSet = descriptor_set;
 	}
@@ -163,4 +153,49 @@ DescriptorWriter& DescriptorWriter::clear() {
 	return *this;
 }
 
+// ---------------------------------------------- DESCRIPTOR SET -----------------------------------------------------------------
 
+void DescriptorSet::cleanup() {
+    vkDestroyDescriptorSetLayout(renderer->device.logical_device, layout, nullptr);
+}
+
+// ---------------------------------------------- DESCRIPTOR BUILDER -----------------------------------------------------------------
+
+void DescriptorBuilder::initialize(Renderer* renderer, uint32_t max_sets, std::span<PoolSizeRatio> pool_size_ratios) {
+    this->renderer = renderer;
+    this->descriptor_pool.initialize(&renderer->device, max_sets, pool_size_ratios);
+    this->descriptor_layout_builder.initialize(&renderer->device);
+    this->descriptor_writer.initialize(&renderer->device);
+}
+
+void DescriptorBuilder::cleanup() {
+    descriptor_pool.cleanup();
+}
+
+DescriptorBuilder& DescriptorBuilder::clear() {
+    descriptor_layout_builder.clear();
+    descriptor_writer.clear();
+    return *this;
+}
+
+DescriptorBuilder& DescriptorBuilder::add_buffer(uint32_t binding, VkDescriptorType descriptor_type, VkShaderStageFlags shader_stage, Buffer* buffer, size_t offset, size_t size) {
+    descriptor_layout_builder.add_binding(binding, descriptor_type, shader_stage);
+    descriptor_writer.add_buffer(binding, buffer, descriptor_type);
+    return *this;
+}
+
+DescriptorBuilder& DescriptorBuilder::add_image(uint32_t binding, VkDescriptorType descriptor_type, VkShaderStageFlags shader_stage, ImageType* image, VkSampler sampler) {
+    descriptor_layout_builder.add_binding(binding, descriptor_type, shader_stage);
+    descriptor_writer.add_image(binding, image, sampler, descriptor_type);
+    return *this;
+}
+
+DescriptorSet DescriptorBuilder::build() {
+    DescriptorSet set;
+    set.renderer = this->renderer;
+    set.layout = descriptor_layout_builder.build();
+    set.handle = descriptor_pool.allocate_descriptor_set(set.layout);
+    descriptor_writer.write(set.handle);
+
+    return set;
+}
