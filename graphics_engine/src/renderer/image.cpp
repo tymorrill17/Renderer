@@ -101,7 +101,7 @@ VkRenderingAttachmentInfoKHR Image::depth_attachment_info(VkImageView image_view
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 	};
-    depth_attachment_info.clearValue.depthStencil.depth = 0.0f;
+    depth_attachment_info.clearValue.depthStencil.depth = 0.0f; // Initialize the depth buffer to 0
 	return depth_attachment_info;
 }
 

@@ -127,6 +127,7 @@ int main (int argc, char *argv[]) {
         glm::mat4 model = glm::rotate(camera_config.rotation, up);
 
         push_constants.world_matrix = projection * view * model;
+        //push_constants.world_matrix = model;
         mesh_render_system.update_push_constants(&push_constants);
 
         renderer.draw();

@@ -52,7 +52,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
         &device_memory_manager,
         VkExtent3D{ window.extent.width, window.extent.height, 1 },
         VK_FORMAT_D32_SFLOAT,
-		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VMA_MEMORY_USAGE_GPU_ONLY,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_DEPTH_BIT
@@ -131,7 +131,6 @@ void Renderer::draw() {
 	VkRenderingAttachmentInfoKHR color_attachment_info = Image::color_attachment_info(draw_image.view, &clear_value, VK_IMAGE_LAYOUT_GENERAL);
 	VkRenderingAttachmentInfoKHR depth_attachment_info = Image::depth_attachment_info(depth_image.view, VK_IMAGE_LAYOUT_GENERAL);
 	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, &depth_attachment_info);
-//	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, nullptr);
 
 	// Transition draw image to a color attachment
     // Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -186,6 +185,7 @@ void Renderer::resize_callback() {
         window.update_after_resize();
 		swapchain.recreate();
 		draw_image.recreate({ window.extent.width, window.extent.height, 1 });
+		depth_image.recreate({ window.extent.width, window.extent.height, 1 });
 	}
 }
 
@@ -206,7 +206,7 @@ Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		.pNext = nullptr,
 		.size = new_buffer.total_bytes,
-		.usage = vk_memory_usage
+		.usage = vk_memory_usage,
 	};
 
 	VmaAllocationCreateInfo allocation_create_info{

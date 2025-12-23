@@ -169,11 +169,11 @@ PipelineBuilder& PipelineBuilder::set_depth_test(VkCompareOp compare_op) {
     config.depth_stencil.depthWriteEnable = compare_op == VK_COMPARE_OP_NEVER ? VK_FALSE : VK_TRUE;
     config.depth_stencil.depthCompareOp = compare_op;
     config.depth_stencil.depthBoundsTestEnable = VK_FALSE;
+    config.depth_stencil.minDepthBounds = 0.0f;
+    config.depth_stencil.maxDepthBounds = 1.0f;
     config.depth_stencil.stencilTestEnable = VK_FALSE;
     config.depth_stencil.front = {};
     config.depth_stencil.back = {};
-    config.depth_stencil.minDepthBounds = 0.0f;
-    config.depth_stencil.maxDepthBounds = 1.0f;
     return *this;
 }
 
