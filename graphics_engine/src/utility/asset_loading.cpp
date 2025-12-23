@@ -78,8 +78,8 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> AssetManager::load_mesh_G
                         new_vertex.position = pos;
                         new_vertex.normal = { 1, 0, 0 };
                         new_vertex.color = glm::vec4 { 1.0f };
-                        new_vertex.uv_x = 0;
-                        new_vertex.uv_y = 0;
+//                        new_vertex.uv_x = 0;
+//                        new_vertex.uv_y = 0;
                         vertices[initial_vertex + index] = new_vertex;
                     });
             }
@@ -95,15 +95,15 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> AssetManager::load_mesh_G
             }
 
             // load UVs
-            auto uv = primitive.findAttribute("TEXCOORD_0");
-            if (uv != primitive.attributes.end()) {
-                fastgltf::Accessor& vertex_uv_accessor = asset->accessors[uv->accessorIndex];
-                fastgltf::iterateAccessorWithIndex<glm::vec2>(asset.get(), vertex_uv_accessor,
-                    [&](glm::vec2 uv, size_t index) {
-                        vertices[initial_vertex + index].uv_x = uv.x;
-                        vertices[initial_vertex + index].uv_y = uv.y;
-                    });
-            }
+//            auto uv = primitive.findAttribute("TEXCOORD_0");
+//            if (uv != primitive.attributes.end()) {
+//                fastgltf::Accessor& vertex_uv_accessor = asset->accessors[uv->accessorIndex];
+//                fastgltf::iterateAccessorWithIndex<glm::vec2>(asset.get(), vertex_uv_accessor,
+//                    [&](glm::vec2 uv, size_t index) {
+//                        vertices[initial_vertex + index].uv_x = uv.x;
+//                        vertices[initial_vertex + index].uv_y = uv.y;
+//                    });
+//            }
 
             // load vertex colors
             auto colors = primitive.findAttribute("COLOR_0");

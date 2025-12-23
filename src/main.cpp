@@ -1,5 +1,10 @@
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_float3.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/fwd.hpp"
+#include "glm/gtx/transform.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "imgui.h"
@@ -38,7 +43,12 @@ const std::string root_directory = std::string(ROOT_DIR);
 struct CameraParams {
     float fov;
     glm::vec3 position;
-    glm::vec3 direction;
+    glm::vec3 center;
+    float near_plane;
+    float far_plane;
+    bool perspective;
+    float ortho_box[4];
+    float rotation;
 };
 
 int main (int argc, char *argv[]) {
@@ -72,24 +82,19 @@ int main (int argc, char *argv[]) {
     mesh_render_system.add_renderable(test_meshes.value()[2]);
 
     // Set up camera
-//    Camera world_camera;
-//    CameraParams camera_config{
-//        .fov = 70.0f,
-//        .position = glm::vec3{0.0f, 0.0f, -2.0f},
-//        .direction = glm::vec3{0.0f, 0.0f, 1.0f}
-//    };
-//    world_camera.set_projection_perspective(camera_config.fov, renderer.window.aspect_ratio, 10000.0f, 0.1f);
-//    world_camera.set_view_direction(camera_config.position, camera_config.direction);
-
-    //glm::mat4 view = glm::translate(glm::mat4{ 1.0f }, glm::vec3{ 0,0,-5 });
-    glm::mat4 view = glm::mat4{ 1.0f };
-	glm::mat4 projection = glm::perspective(glm::radians(70.f), renderer.window.aspect_ratio, 10000.f, 0.1f);
-    projection[1][1] *= -1;
+    Camera world_camera;
+    CameraParams camera_config{
+        .fov = 70.0f,
+        .position = glm::vec3{0.0f, 0.0f, -5.0f},
+        .center = glm::vec3{0.0f, 0.0f, 0.0f},
+        .near_plane = 10000.0f,
+        .far_plane = 0.1f,
+        .perspective = true,
+        .ortho_box = {-10.0f, 10.0f, -5.0f, 5.0f},
+        .rotation = 0.0f
+    };
 
     GPUDrawPushConstants push_constants{
-//        .world_matrix = world_camera.projection * world_camera.view,
-//        .world_matrix = glm::mat4{ 1.0f },
-        .world_matrix = projection * view,
         .vertex_buffer_address = test_meshes.value()[2]->GPU_mesh.vertex_buffer_address
     };
 
@@ -98,14 +103,30 @@ int main (int argc, char *argv[]) {
         input_manager.process_inputs();
 
         gui_render_system.start_frame();
-//        gui.add_widget("Camera", [&](){
-//            ImGui::DragFloat("FOV", &camera_config.fov, 1.0f, 70.0f, 120.0f);
-//            ImGui::DragFloat3("Position", glm::value_ptr(camera_config.position), 0.1f);
-//            ImGui::DragFloat3("Direction", glm::value_ptr(camera_config.direction), 0.1f);
-//        });
-//        world_camera.set_projection_perspective(camera_config.fov, renderer.window.aspect_ratio, 10000.0f, 0.1f);
-//        world_camera.set_view_direction(camera_config.position, camera_config.direction);
-//        push_constants.world_matrix = world_camera.projection * world_camera.view;
+        gui.add_widget("Camera", [&](){
+            ImGui::DragFloat("FOV", &camera_config.fov, 0.1f, 1.0f, 300.0f);
+            ImGui::DragFloat3("Position", glm::value_ptr(camera_config.position), 0.1f);
+            ImGui::DragFloat3("Center", glm::value_ptr(camera_config.center), 0.1f);
+            ImGui::DragFloat("Near Plane", &camera_config.near_plane, 0.001);
+            ImGui::DragFloat("Far Plane", &camera_config.far_plane, 0.001);
+            ImGui::DragFloat4("Orthographic Box", camera_config.ortho_box, 0.01f);
+            ImGui::Checkbox("Perspective", &camera_config.perspective);
+            ImGui::DragFloat("Rotation", &camera_config.rotation, 0.1f, 0.0f, 360.0f);
+
+        });
+        const glm::vec3 up = {0.0f, 1.0f, 0.0f};
+        glm::mat4 projection = glm::mat4{1.0f};
+        glm::mat4 view = glm::lookAt(camera_config.position, camera_config.center, up);
+        if (camera_config.perspective) {
+            projection = glm::perspective(glm::radians(camera_config.fov), renderer.window.aspect_ratio, camera_config.near_plane, camera_config.far_plane);
+        } else {
+            projection = glm::ortho(camera_config.ortho_box[0], camera_config.ortho_box[1], camera_config.ortho_box[2],
+                camera_config.ortho_box[3], camera_config.near_plane, camera_config.far_plane);
+        }
+        projection[1][1] *= -1;
+        glm::mat4 model = glm::rotate(camera_config.rotation, up);
+
+        push_constants.world_matrix = projection * view * model;
         mesh_render_system.update_push_constants(&push_constants);
 
         renderer.draw();

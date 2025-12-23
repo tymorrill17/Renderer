@@ -131,6 +131,7 @@ void Renderer::draw() {
 	VkRenderingAttachmentInfoKHR color_attachment_info = Image::color_attachment_info(draw_image.view, &clear_value, VK_IMAGE_LAYOUT_GENERAL);
 	VkRenderingAttachmentInfoKHR depth_attachment_info = Image::depth_attachment_info(depth_image.view, VK_IMAGE_LAYOUT_GENERAL);
 	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, &depth_attachment_info);
+//	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, nullptr);
 
 	// Transition draw image to a color attachment
     // Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
