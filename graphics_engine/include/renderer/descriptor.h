@@ -11,8 +11,9 @@
 #include <string>
 #include <deque>
 
-// @brief Describes how many of each type of descriptor set to make room for in the descriptor pool.
-//		  Used in the initialization of the descriptor pool in the DescriptorAllocator.
+class Renderer;
+class Buffer;
+
 struct PoolSizeRatio {
 	VkDescriptorType type;
 	float ratio;
@@ -33,31 +34,52 @@ public:
 class DescriptorLayoutBuilder {
 public:
     void initialize(Device* device);
-    void cleanup();
 
     DescriptorLayoutBuilder& add_binding(uint32_t binding, VkDescriptorType descriptor_type, VkShaderStageFlags shader_stage);
     DescriptorLayoutBuilder& clear();
     VkDescriptorSetLayout build();
-    void destroy_all_layouts();
 
     Device* device;
 	std::vector<VkDescriptorSetLayoutBinding> bindings;
-    std::deque<VkDescriptorSetLayout> layout_deletion_queue;
 };
 
 class DescriptorWriter {
 public:
     void initialize(Device* device);
-    void cleanup();
 
     DescriptorWriter& add_image(uint32_t binding, ImageType* image, VkSampler sampler, VkDescriptorType descriptor_type);
-//    DescriptorWriter& add_buffer(uint32_t binding, Buffer* buffer, VkDescriptorType descriptor_type, size_t offset = 0, size_t size = VK_WHOLE_SIZE);
+    DescriptorWriter& add_buffer(uint32_t binding, Buffer* buffer, VkDescriptorType descriptor_type, size_t offset = 0, size_t size = VK_WHOLE_SIZE);
     DescriptorWriter& clear();
-    DescriptorWriter& write_descriptor_set(VkDescriptorSet descriptor_set);
+    DescriptorWriter& write(VkDescriptorSet descriptor_set);
 
 	Device* device;
 	std::deque<VkDescriptorImageInfo>  image_infos;
 	std::deque<VkDescriptorBufferInfo> buffer_infos;
 	std::vector<VkWriteDescriptorSet>  set_writes;
+};
+
+class DescriptorSet {
+public:
+    void cleanup();
+
+    Renderer* renderer;
+    VkDescriptorSet handle;
+    VkDescriptorSetLayout layout;
+};
+
+class DescriptorBuilder {
+public:
+    void initialize(Renderer* renderer, uint32_t max_sets, std::span<PoolSizeRatio> pool_size_ratios);
+    void cleanup();
+
+    DescriptorBuilder& add_buffer(uint32_t binding, VkDescriptorType descriptor_type, VkShaderStageFlags shader_stage, Buffer* buffer, size_t offset = 0, size_t size = VK_WHOLE_SIZE);
+    DescriptorBuilder& add_image(uint32_t binding, VkDescriptorType descriptor_type, VkShaderStageFlags shader_stage, ImageType* image, VkSampler sampler);
+    DescriptorBuilder& clear();
+    DescriptorSet build();
+
+    Renderer* renderer;
+    DescriptorPool descriptor_pool;
+    DescriptorWriter descriptor_writer;
+    DescriptorLayoutBuilder descriptor_layout_builder;;
 };
 

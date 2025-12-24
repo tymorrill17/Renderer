@@ -2,6 +2,7 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "renderer/image.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/fwd.hpp"
 #include "glm/gtx/transform.hpp"
@@ -51,6 +52,12 @@ struct CameraParams {
     float rotation;
 };
 
+struct CameraBuffer {
+    glm::mat4 projection{1.0f};
+    glm::mat4 view{1.0f};
+    glm::mat4 model{1.0f};
+};
+
 int main (int argc, char *argv[]) {
 
     Renderer renderer;
@@ -67,8 +74,15 @@ int main (int argc, char *argv[]) {
     renderer.initialize(&renderer_info);
     input_manager.initialize(&renderer.window);
 
+    Buffer global_uniform_buffer = renderer.create_buffer(sizeof(CameraBuffer), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    CameraBuffer camera_buffer{};
+
+    DescriptorSet global_buffer_descriptor = renderer.descriptor_builder
+        .add_buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, &global_uniform_buffer)
+        .build();
+
     MeshRenderSystem mesh_render_system;
-    mesh_render_system.initialize(&renderer);
+    mesh_render_system.initialize(&renderer, std::vector<DescriptorSet>{global_buffer_descriptor});
     renderer.add_render_system(&mesh_render_system);
 
     GuiRenderSystem gui_render_system;
@@ -94,9 +108,9 @@ int main (int argc, char *argv[]) {
         .rotation = 0.0f
     };
 
-    GPUDrawPushConstants push_constants{
-        .vertex_buffer_address = test_meshes.value()[2]->GPU_mesh.vertex_buffer_address
-    };
+//    GPUDrawPushConstants push_constants{
+//        .vertex_buffer_address = test_meshes.value()[2]->GPU_mesh.vertex_buffer_address
+//    };
 
     // Main loop
     while (!renderer.window.window_should_close) {
@@ -126,9 +140,10 @@ int main (int argc, char *argv[]) {
         projection[1][1] *= -1;
         glm::mat4 model = glm::rotate(camera_config.rotation, up);
 
-        push_constants.world_matrix = projection * view * model;
-        //push_constants.world_matrix = model;
-        mesh_render_system.update_push_constants(&push_constants);
+        camera_buffer.projection = projection;
+        camera_buffer.view = view;
+        camera_buffer.model = model;
+        global_uniform_buffer.write_data(&camera_buffer);
 
         renderer.draw();
 
@@ -138,6 +153,8 @@ int main (int argc, char *argv[]) {
 
     renderer.wait_for_idle();
 
+    global_uniform_buffer.cleanup();
+    global_buffer_descriptor.cleanup();
     for (auto& mesh : test_meshes.value()) mesh->cleanup();
     gui_render_system.cleanup();
     mesh_render_system.cleanup();

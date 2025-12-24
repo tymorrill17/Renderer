@@ -25,5 +25,7 @@ public:
 	size_t instance_bytes; // The size in bytes of a single instance of the struct being stored by the buffer
 	size_t alignment;      // The device-specific alignment size
 
+    bool is_mapped;
+
 	static size_t find_alignment_size(size_t instance_bytes, size_t minimum_offset_alignment);
 };

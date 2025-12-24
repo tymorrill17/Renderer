@@ -5,26 +5,32 @@
 #include "vulkan/vulkan_core.h"
 
 void Buffer::cleanup() {
+    if (is_mapped) unmap();
+
     vmaDestroyBuffer(device_memory_manager->allocator, handle, allocation);
 }
 
 void Buffer::map() {
+    if (is_mapped) return;
+
 	if (vmaMapMemory(device_memory_manager->allocator, allocation, &mapped_data) != VK_SUCCESS) {
         Logger::logError("Failed to map memory to the buffer!");
+        return;
 	}
+    is_mapped = true;
 }
 
 void Buffer::unmap() {
-	if (mapped_data) {
+	if (is_mapped) {
 		vmaUnmapMemory(device_memory_manager->allocator, allocation);
 		mapped_data = nullptr;
+        is_mapped = false;
 	}
 }
 
 void Buffer::write_data(void* data, size_t size, size_t offset) {
-	if (!mapped_data) {
-        Logger::logError("Trying to write to an unmapped buffer!");
-	}
+	if (!is_mapped) map();
+
     // If we are writing to all of mapped_data, a simple memcpy is sufficient
 	if (size == VK_WHOLE_SIZE) {
 		memcpy(mapped_data, data, total_bytes);
@@ -36,6 +42,9 @@ void Buffer::write_data(void* data, size_t size, size_t offset) {
 }
 
 void Buffer::write_data_at_index(void* data, int index) {
+	if (!is_mapped) {
+        map();
+	}
 	write_data(data, instance_bytes, index * alignment);
 }
 

@@ -1,8 +1,10 @@
 #include "renderer/renderer.h"
+#include "renderer/descriptor.h"
 #include "renderer/image.h"
 #include "renderer/sync.h"
 #include "vulkan/vulkan_core.h"
 #include <cstdint>
+#include <vector>
 
 static VkRenderingInfoKHR rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info) {
 	VkRenderingInfoKHR render_info{
@@ -17,6 +19,12 @@ static VkRenderingInfoKHR rendering_info(VkExtent2D extent, uint32_t color_attac
 	render_info.renderArea.offset = { 0, 0 };
 	return render_info;
 }
+
+static PoolSizeRatio pool_sizes[] {
+    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         100},
+    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100},
+    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         100},
+};
 
 void Renderer::initialize(RendererCreateInfo* renderer_info) {
 
@@ -67,8 +75,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     }
     immediate_command.initialize(&device, &command_pool);
 
-    descriptor_layout_builder.initialize(&device);
-    descriptor_writer.initialize(&device);
+    descriptor_builder.initialize(this, 10, pool_sizes);
     shader_manager.initialize();
     asset_manager.initialize(this);
     frame_number = 0;
@@ -80,9 +87,8 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
 void Renderer::cleanup() {
     wait_for_idle();
 
-    descriptor_writer.cleanup();
-    descriptor_layout_builder.cleanup();
     // TODO: Should there be a wait for idle before destroying command pool?
+    descriptor_builder.cleanup();
     command_pool.cleanup();
     immediate_command.cleanup();
     draw_image.cleanup();
@@ -201,6 +207,8 @@ Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
 
     new_buffer.total_bytes = instance_bytes * instance_count;
     new_buffer.alignment = Buffer::find_alignment_size(instance_bytes, minimum_offset_alignment);
+
+    new_buffer.is_mapped = false;
 
 	VkBufferCreateInfo buffer_create_info{
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,

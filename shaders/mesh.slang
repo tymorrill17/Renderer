@@ -13,6 +13,14 @@ struct VSPushConstants {
     MeshVertex* vertex_address;
 };
 
+struct GlobalBuffer {
+    float4x4 projection;
+    float4x4 view;
+    float4x4 model;
+};
+
+[[vk::binding(0,0)]] ConstantBuffer<GlobalBuffer> global_buffer;
+
 struct VSInput {
     uint vertex_index : SV_VertexID;
 };
@@ -45,7 +53,8 @@ struct VSInput2 {
 VSOutput vertex_main2(VSInput2 input) {
     VSOutput output;
 
-	output.position = mul(vertex_push_constants.world_matrix, float4(input.vertex.position, 1.0f));
+	output.position = mul(global_buffer.projection, mul(global_buffer.view, mul(global_buffer.model, float4(input.vertex.position, 1.0f))));
+	//output.position = mul(vertex_push_constants.world_matrix, float4(input.vertex.position, 1.0f));
 	//output.position = float4(vertex.position, 1.0f);
 	output.color = input.vertex.color;;
     return output;
