@@ -48,7 +48,7 @@ struct CameraParams {
     float near_plane;
     float far_plane;
     bool perspective;
-    float ortho_box[4];
+    float ortho_scale;
     float rotation;
 };
 
@@ -99,12 +99,12 @@ int main (int argc, char *argv[]) {
     Camera world_camera;
     CameraParams camera_config{
         .fov = 70.0f,
-        .position = glm::vec3{0.0f, 0.0f, -5.0f},
+        .position = glm::vec3{0.0f, 0.0f, 5.0f},
         .center = glm::vec3{0.0f, 0.0f, 0.0f},
         .near_plane = 10000.0f,
         .far_plane = 0.1f,
         .perspective = true,
-        .ortho_box = {-10.0f, 10.0f, -5.0f, 5.0f},
+        .ortho_scale = 5.0f,
         .rotation = 0.0f
     };
 
@@ -123,25 +123,24 @@ int main (int argc, char *argv[]) {
             ImGui::DragFloat3("Center", glm::value_ptr(camera_config.center), 0.1f);
             ImGui::DragFloat("Near Plane", &camera_config.near_plane, 0.001);
             ImGui::DragFloat("Far Plane", &camera_config.far_plane, 0.001);
-            ImGui::DragFloat4("Orthographic Box", camera_config.ortho_box, 0.01f);
             ImGui::Checkbox("Perspective", &camera_config.perspective);
+            ImGui::DragFloat("Orthographic Scale", &camera_config.ortho_scale, 0.1f);
             ImGui::DragFloat("Rotation", &camera_config.rotation, 0.1f, 0.0f, 360.0f);
 
         });
-        const glm::vec3 up = {0.0f, 1.0f, 0.0f};
-        glm::mat4 projection = glm::mat4{1.0f};
-        glm::mat4 view = glm::lookAt(camera_config.position, camera_config.center, up);
+        //glm::mat4 view = glm::lookAt(camera_config.position, camera_config.center, up);
+        //world_camera.set_view_direction(camera_config.position, camera_config.center);
+        world_camera.set_view_target(camera_config.position, camera_config.center);
         if (camera_config.perspective) {
-            projection = glm::perspective(glm::radians(camera_config.fov), renderer.window.aspect_ratio, camera_config.near_plane, camera_config.far_plane);
+            world_camera.set_projection_perspective(camera_config.fov, renderer.window.aspect_ratio, camera_config.near_plane, camera_config.far_plane);
         } else {
-            projection = glm::ortho(camera_config.ortho_box[0], camera_config.ortho_box[1], camera_config.ortho_box[2],
-                camera_config.ortho_box[3], camera_config.near_plane, camera_config.far_plane);
+            world_camera.set_projection_orthographic(-renderer.window.aspect_ratio/2.0f*camera_config.ortho_scale, renderer.window.aspect_ratio/2.0f*camera_config.ortho_scale, -0.5f*camera_config.ortho_scale, 0.5f*camera_config.ortho_scale, camera_config.near_plane, camera_config.far_plane);
         }
-        projection[1][1] *= -1;
+        const glm::vec3 up = {0.0f, 1.0f, 0.0f};
         glm::mat4 model = glm::rotate(camera_config.rotation, up);
 
-        camera_buffer.projection = projection;
-        camera_buffer.view = view;
+        camera_buffer.projection = world_camera.projection;
+        camera_buffer.view = world_camera.view;
         camera_buffer.model = model;
         global_uniform_buffer.write_data(&camera_buffer);
 
