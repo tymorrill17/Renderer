@@ -146,9 +146,37 @@ PipelineBuilder& PipelineBuilder::set_multisampling(VkSampleCountFlagBits sample
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::set_blending(bool enable) {
-    config.color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    config.color_blend_attachment.blendEnable = enable;
+PipelineBuilder& PipelineBuilder::set_blending(BlendingType blending_type) {
+
+    switch (blending_type) {
+        case BlendingType::BLENDING_TYPE_NONE:
+            config.color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            config.color_blend_attachment.blendEnable = VK_FALSE;
+            break;
+
+        case BlendingType::BLENDING_TYPE_ADDITIVE:
+            config.color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            config.color_blend_attachment.blendEnable = VK_TRUE;
+            config.color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            config.color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+            config.color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+            config.color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            config.color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            config.color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+            break;
+
+        case BlendingType::BLENDING_TYPE_ALPHA:
+            config.color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            config.color_blend_attachment.blendEnable = VK_TRUE;
+            config.color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            config.color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            config.color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+            config.color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            config.color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            config.color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+            break;
+    }
+
     return *this;
 }
 

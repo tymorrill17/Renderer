@@ -28,6 +28,12 @@ namespace PipelineLayout {
 
 // PIPELINE BUILDER --------------------------------------------------------------------------------------------------------------------
 
+enum BlendingType {
+    BLENDING_TYPE_ADDITIVE,
+    BLENDING_TYPE_ALPHA,
+    BLENDING_TYPE_NONE,
+};
+
 struct PipelineConfig {
 	// Shaders
 	std::vector<VkPipelineShaderStageCreateInfo> shader_modules;
@@ -59,7 +65,7 @@ public:
 	PipelineBuilder& set_polygon_mode(VkPolygonMode mode);
 	PipelineBuilder& set_cull_mode(VkCullModeFlags cull_mode, VkFrontFace front_face);
 	PipelineBuilder& set_multisampling(VkSampleCountFlagBits sample_count);
-	PipelineBuilder& set_blending(bool enable);
+	PipelineBuilder& set_blending(BlendingType blending_type);
 	PipelineBuilder& set_color_attachment_format(VkFormat format);
 	PipelineBuilder& set_depth_attachment_format(VkFormat format);
 	PipelineBuilder& set_depth_test(VkCompareOp compare_op = VK_COMPARE_OP_NEVER);

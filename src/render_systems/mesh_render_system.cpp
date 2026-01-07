@@ -45,7 +45,7 @@ void MeshRenderSystem::initialize(Renderer* renderer, std::vector<DescriptorSet>
         .set_polygon_mode(VK_POLYGON_MODE_FILL)
         .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
         .set_multisampling(VK_SAMPLE_COUNT_1_BIT)
-        .set_blending(false)
+        .set_blending(BlendingType::BLENDING_TYPE_ALPHA)
         .set_color_attachment_format(renderer->draw_image.format)
         .set_depth_attachment_format(renderer->depth_image.format)
         .set_depth_test(VK_COMPARE_OP_GREATER_OR_EQUAL)
