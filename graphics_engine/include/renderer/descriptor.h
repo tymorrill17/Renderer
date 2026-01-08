@@ -15,20 +15,29 @@ class Renderer;
 class Buffer;
 
 struct PoolSizeRatio {
-	VkDescriptorType type;
-	float ratio;
+    VkDescriptorType type;
+    float ratio;
 };
 
-class DescriptorPool {
+class DescriptorAllocator {
 public:
-    void initialize(Device* device, uint32_t max_sets, std::span<PoolSizeRatio> pool_size_ratios);
-    void cleanup();
-
-    VkDescriptorSet allocate_descriptor_set(VkDescriptorSetLayout layout);
+    void initialize(Device* device, uint32_t initial_sets, std::span<PoolSizeRatio> pool_size_ratios, VkDescriptorPoolCreateFlags flags = 0);
     void reset_all_descriptor_sets();
+	void cleanup();
+
+    VkDescriptorPool get_open_pool();
+    VkDescriptorSet allocate_descriptor_set(VkDescriptorSetLayout layout);
+
+    std::vector<PoolSizeRatio> pool_size_ratios;
+	std::vector<VkDescriptorPool> full_pools;
+	std::vector<VkDescriptorPool> open_pools;
+	uint32_t sets_per_pool;
+    VkDescriptorPoolCreateFlags pool_flags;
 
     Device* device;
-    VkDescriptorPool handle;
+
+private:
+    VkDescriptorPool new_pool(uint32_t set_count, std::span<PoolSizeRatio> pool_size_ratios);
 };
 
 class DescriptorLayoutBuilder {
@@ -78,7 +87,7 @@ public:
     DescriptorSet build();
 
     Renderer* renderer;
-    DescriptorPool descriptor_pool;
+    DescriptorAllocator descriptor_allocator;
     DescriptorWriter descriptor_writer;
     DescriptorLayoutBuilder descriptor_layout_builder;;
 };

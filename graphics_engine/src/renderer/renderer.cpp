@@ -77,6 +77,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     }
     immediate_command.initialize(&device, &command_pool);
 
+    // TODO: we can only have 10 descriptor sets with this pool. I realize now how hard descriptor abstraction is
     descriptor_builder.initialize(this, 10, pool_sizes);
     shader_manager.initialize();
     asset_manager.initialize(this);

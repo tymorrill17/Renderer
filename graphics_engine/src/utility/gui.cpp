@@ -18,7 +18,7 @@ std::vector<PoolSizeRatio> pool_sizes = { { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
 
 void Gui::initialize(Renderer* renderer) {
     this->renderer = renderer;
-	descriptor_pool.initialize(&renderer->device, 1000, pool_sizes);
+	descriptor_allocator.initialize(&renderer->device, 1000, pool_sizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
 	// Initialize core structures of ImGui
 	ImGui::CreateContext();
@@ -40,7 +40,7 @@ void Gui::initialize(Renderer* renderer) {
 		.Device = renderer->device.logical_device,
         .QueueFamily = renderer->device.queue_indices.graphics_family.value(),
 		.Queue = renderer->device.graphics_queue,
-		.DescriptorPool = descriptor_pool.handle,
+		.DescriptorPool = descriptor_allocator.get_open_pool(),
 		.MinImageCount = renderer->frames_in_flight,
 		.ImageCount = renderer->frames_in_flight,
 		.UseDynamicRendering = true,
@@ -55,7 +55,7 @@ void Gui::cleanup() {
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
-    descriptor_pool.cleanup();
+    descriptor_allocator.cleanup();
 }
 
 void Gui::process_inputs(SDL_Event* event) {

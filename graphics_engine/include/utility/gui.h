@@ -30,5 +30,5 @@ public:
 
 	std::unordered_map<std::string, std::vector<std::function<void()>>> widget_dictionary;
     Renderer* renderer;
-    DescriptorPool descriptor_pool;
+    DescriptorAllocator descriptor_allocator;
 };
