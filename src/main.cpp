@@ -9,7 +9,6 @@
 #include "glm/gtx/string_cast.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "imgui.h"
-#include "render_systems/gui_render_system.h"
 #include "render_systems/mesh_render_system.h"
 #include "renderer/renderer.h"
 #include "renderer/mesh.h"
@@ -85,11 +84,8 @@ int main (int argc, char *argv[]) {
     mesh_render_system.initialize(&renderer, std::vector<DescriptorSet>{global_buffer_descriptor});
     renderer.add_render_system(&mesh_render_system);
 
-    GuiRenderSystem gui_render_system;
-    gui_render_system.initialize(&renderer);
-    renderer.add_render_system(&gui_render_system);
-
     static Gui& gui = Gui::get_gui();
+    gui.initialize(&renderer);
 
     // Create meshes
     auto test_meshes = renderer.asset_manager.load_mesh_GLTF(std::filesystem::absolute(root_directory + "/assets/basicmesh.glb"));
@@ -116,7 +112,7 @@ int main (int argc, char *argv[]) {
     while (!renderer.window.window_should_close) {
         input_manager.process_inputs();
 
-        gui_render_system.start_frame();
+        gui.start_frame();
         gui.add_widget("Camera", [&](){
             ImGui::DragFloat("FOV", &camera_config.fov, 0.1f, 1.0f, 300.0f);
             ImGui::DragFloat3("Position", glm::value_ptr(camera_config.position), 0.1f);
@@ -127,6 +123,9 @@ int main (int argc, char *argv[]) {
             ImGui::DragFloat("Orthographic Scale", &camera_config.ortho_scale, 0.1f);
             ImGui::DragFloat("Rotation", &camera_config.rotation, 0.1f, 0.0f, 360.0f);
 
+        });
+        gui.add_widget("Renderer", [&](){
+            ImGui::DragFloat("Render Scale", &renderer.render_scale, 0.001f, 0.3f, 1.0f);
         });
         //glm::mat4 view = glm::lookAt(camera_config.position, camera_config.center, up);
         //world_camera.set_view_direction(camera_config.position, camera_config.center);
@@ -146,7 +145,7 @@ int main (int argc, char *argv[]) {
 
         renderer.draw();
 
-        gui_render_system.end_frame();
+        gui.end_frame();
         renderer.resize_callback();
     }
 
@@ -155,7 +154,7 @@ int main (int argc, char *argv[]) {
     global_uniform_buffer.cleanup();
     global_buffer_descriptor.cleanup();
     for (auto& mesh : test_meshes.value()) mesh->cleanup();
-    gui_render_system.cleanup();
+    gui.cleanup();
     mesh_render_system.cleanup();
     renderer.cleanup();
 

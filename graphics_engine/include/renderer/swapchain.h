@@ -29,6 +29,7 @@ public:
     void recreate();
     void acquire_next_image(FrameSync* sync);
     void present_to_screen(VkQueue queue, FrameSync* sync);
+    SwapchainImage& current_image() { return images[image_index]; }
 
     static SwapchainSupportDetails query_swapchain_support(VkPhysicalDevice physical_device, VkSurfaceKHR surface);
     static VkExtent2D find_swapchain_extent(VkSurfaceCapabilitiesKHR surface_capabilities, Window* window);

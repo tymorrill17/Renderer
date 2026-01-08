@@ -2,11 +2,13 @@
 #include "renderer/descriptor.h"
 #include "renderer/image.h"
 #include "renderer/sync.h"
+#include "utility/gui.h"
 #include "vulkan/vulkan_core.h"
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 
-static VkRenderingInfoKHR rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info) {
+VkRenderingInfoKHR Renderer::rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info) {
 	VkRenderingInfoKHR render_info{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
 		.pNext = nullptr,
@@ -80,7 +82,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     asset_manager.initialize(this);
     frame_number = 0;
     frame_index = 0;
-
+    render_scale = 1.0f;
     Logger::log("Renderer Initialized!");
 }
 
@@ -136,23 +138,26 @@ void Renderer::draw() {
 	VkClearValue clear_value{ .color{ 0.0f, 0.0f, 0.0f, 1.0f } };
 	VkRenderingAttachmentInfoKHR color_attachment_info = Image::color_attachment_info(draw_image.view, &clear_value, VK_IMAGE_LAYOUT_GENERAL);
 	VkRenderingAttachmentInfoKHR depth_attachment_info = Image::depth_attachment_info(depth_image.view, VK_IMAGE_LAYOUT_GENERAL);
-	VkRenderingInfoKHR render_info = rendering_info(window.extent, 1, &color_attachment_info, &depth_attachment_info);
 
-	// Transition draw image to a color attachment
-    // Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkExtent2D draw_extent{
+        .width  = static_cast<uint32_t>(std::min(draw_image.extent.width, swapchain.extent.width) * render_scale),
+        .height = static_cast<uint32_t>(std::min(draw_image.extent.height, swapchain.extent.height) * render_scale),
+    };
+
+	VkRenderingInfoKHR render_info = rendering_info(draw_extent, 1, &color_attachment_info, &depth_attachment_info);
 
 	VkViewport viewport{
 		.x = 0.0f,
 		.y = 0.0f,
-		.width = static_cast<float>(window.extent.width),
-		.height = static_cast<float>(window.extent.height),
+		.width = static_cast<float>(draw_extent.width),
+		.height = static_cast<float>(draw_extent.height),
 		.minDepth = 0.0f,
 		.maxDepth = 1.0f
 	};
 
 	VkRect2D scissor{
 		.offset = {0, 0},
-		.extent = window.extent
+		.extent = draw_extent
 	};
 
 	vkCmdBeginRendering(cmd->buffer, &render_info);
@@ -171,12 +176,21 @@ void Renderer::draw() {
 	// Draw image is going to be copied to the swapchain image, so transition it to a transfer source layout
     Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 	// Swapchain image needs to be transitioned to a transfer destination layout
-    Image::transition_image(cmd, &swapchain.images[swapchain.image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    Image::transition_image(cmd, &swapchain.current_image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-	Image::copy_image_to_GPU(cmd, &draw_image, &swapchain.images[swapchain.image_index]);
+	Image::copy_subimage(
+        cmd,
+        &draw_image,
+        VkExtent3D{draw_extent.width, draw_extent.height, 1},
+        &swapchain.current_image(),
+        swapchain.current_image().extent
+    );
+
+    static Gui& gui = Gui::get_gui();
+    gui.draw(cmd);
 
 	// Transition swapchain image to a presentation-ready layout
-    Image::transition_image(cmd, &swapchain.images[swapchain.image_index], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    Image::transition_image(cmd, &swapchain.current_image(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 	cmd->end();
 	cmd->submit_to_queue(device.graphics_queue, &frame_sync[frame_index]);

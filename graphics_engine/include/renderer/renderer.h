@@ -42,6 +42,8 @@ public:
         size_t minimum_offset_alignment = 1
     );
 
+    static VkRenderingInfoKHR rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info);
+
     Window window;
     Instance instance;
     DebugMessenger debug_messenger;
@@ -59,6 +61,8 @@ public:
     ShaderManager shader_manager;
     std::vector<RenderSystem*> render_systems;
     AssetManager asset_manager;
+
+    float render_scale;
 
     uint32_t frames_in_flight;
     uint32_t frame_number;

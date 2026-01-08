@@ -40,19 +40,19 @@ void Image::transition_image(Command* cmd, ImageType* image, VkImageLayout new_l
 	image->layout = new_layout;
 }
 
-void Image::copy_image_to_GPU(Command* cmd, ImageType* src, ImageType* dst) {
+void Image::copy_subimage(Command *cmd, ImageType *src, VkExtent3D src_extent, ImageType *dst, VkExtent3D dst_extent) {
 	VkImageBlit2 blit_region{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
 		.pNext = nullptr
 	};
 
-	blit_region.srcOffsets[1].x = src->extent.width;
-	blit_region.srcOffsets[1].y = src->extent.height;
-	blit_region.srcOffsets[1].z = 1;
+	blit_region.srcOffsets[1].x = src_extent.width;
+	blit_region.srcOffsets[1].y = src_extent.height;
+	blit_region.srcOffsets[1].z = src_extent.depth;
 
-	blit_region.dstOffsets[1].x = dst->extent.width;
-	blit_region.dstOffsets[1].y = dst->extent.height;
-	blit_region.dstOffsets[1].z = 1;
+	blit_region.dstOffsets[1].x = dst_extent.width;
+	blit_region.dstOffsets[1].y = dst_extent.height;
+	blit_region.dstOffsets[1].z = dst_extent.depth;
 
 	blit_region.srcSubresource.aspectMask = src->aspect_flags;
 	blit_region.srcSubresource.baseArrayLayer = 0;
@@ -77,6 +77,11 @@ void Image::copy_image_to_GPU(Command* cmd, ImageType* src, ImageType* dst) {
 	};
 
 	vkCmdBlitImage2(cmd->buffer, &blit_info);
+}
+
+void Image::copy_image(Command* cmd, ImageType* src, ImageType* dst) {
+    // Copy subimage but use the entire image
+    copy_subimage(cmd, src, src->extent, dst, dst->extent);
 }
 
 VkRenderingAttachmentInfoKHR Image::color_attachment_info(VkImageView image_view, VkClearValue* clear_value, VkImageLayout image_layout) {
