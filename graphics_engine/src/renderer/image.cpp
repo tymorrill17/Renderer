@@ -2,6 +2,7 @@
 #include "utility/allocator.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
+#include "renderer/renderer.h"
 
 // Image --------------------------------------------------------------------------------------------------
 
@@ -112,80 +113,15 @@ VkRenderingAttachmentInfoKHR Image::depth_attachment_info(VkImageView image_view
 
 // AllocatedImage --------------------------------------------------------------------------------------------------
 
-void AllocatedImage::initialize(Device* device, DeviceMemoryManager* device_memory_manager,
-	VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
-	VmaMemoryUsage vma_memory_usage, VkMemoryAllocateFlags vk_memory_usage,
-	VkImageAspectFlags aspect_flags) {
-
-    this->device                = device;
-    this->device_memory_manager = device_memory_manager;
-    this->usage_flags           = usage_flags;
-    this->vma_memory_usage      = vma_memory_usage;
-    this->vk_memory_usage       = vk_memory_usage;
-    this->aspect_flags          = aspect_flags;
-    this->extent                = extent;
-    this->format                = format;
-    this->layout                = VK_IMAGE_LAYOUT_UNDEFINED;
-
-	create_image();
-}
-
 void AllocatedImage::cleanup() {
-	vkDestroyImageView(device->logical_device, view, nullptr);
-	vmaDestroyImage(device_memory_manager->allocator, handle, allocation);
-}
-
-void AllocatedImage::create_image() {
-	VkImageCreateInfo image_info{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-		.pNext = nullptr,
-		.imageType = VK_IMAGE_TYPE_2D, // Need to change this if I need 3D images
-		.format = format,
-		.extent = extent,
-		.mipLevels = 1,
-		.arrayLayers = 1,
-		.samples = VK_SAMPLE_COUNT_1_BIT, // Only applicable for target images
-		.tiling = VK_IMAGE_TILING_OPTIMAL,
-		.usage = usage_flags
-	};
-
-	VmaAllocationCreateInfo alloc_info{
-		.usage = vma_memory_usage,
-		.requiredFlags = static_cast<VkMemoryPropertyFlags>(vk_memory_usage)
-	};
-
-	if (vmaCreateImage(device_memory_manager->allocator, &image_info, &alloc_info, &handle, &allocation, nullptr) != VK_SUCCESS) {
-        Logger::logError("Failed to create and allocate image!");
-	}
-    // vmaSetAllocationName(device_memory_manager->allocator, allocation, "AllocatedImage");
-
-	VkImageSubresourceRange subresource_range{
-		.aspectMask = aspect_flags,
-		.baseMipLevel = 0,
-		.levelCount = 1,
-		.baseArrayLayer = 0,
-		.layerCount = 1
-	};
-
-	VkImageViewCreateInfo image_view_info{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		.pNext = nullptr,
-		.image = handle,
-		.viewType = VK_IMAGE_VIEW_TYPE_2D,
-		.format = format,
-		.subresourceRange = subresource_range
-	};
-
-	if (vkCreateImageView(device->logical_device, &image_view_info, nullptr, &view) != VK_SUCCESS) {
-        Logger::logError("Failed to create allocated image view!");
-	}
+	vkDestroyImageView(renderer->device.logical_device, view, nullptr);
+	vmaDestroyImage(renderer->device_memory_manager.allocator, handle, allocation);
 }
 
 void AllocatedImage::recreate(VkExtent3D extent) {
 	cleanup();
-	this->extent = extent;
+    *this = std::move(renderer->create_image(extent, this->format, this->usage_flags, this->vma_memory_usage, this->vk_memory_usage, this->aspect_flags));
     this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
-	create_image();
 }
 
 // SwapchainImage --------------------------------------------------------------------------------------------------

@@ -42,6 +42,12 @@ public:
         size_t minimum_offset_alignment = 1
     );
 
+    AllocatedImage create_image(
+		VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
+		VmaMemoryUsage memory_usage, VkMemoryAllocateFlags vk_memory_usage,
+		VkImageAspectFlags aspect_flags
+    );
+
     static VkRenderingInfoKHR rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info);
 
     Window window;

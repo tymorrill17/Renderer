@@ -46,9 +46,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
         frame_sync.push_back(sync);
     }
 
-    draw_image.initialize(
-        &device,
-        &device_memory_manager,
+    draw_image = create_image(
         VkExtent3D{ window.extent.width, window.extent.height, 1 },
         swapchain.image_format,
 		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -57,9 +55,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
         VK_IMAGE_ASPECT_COLOR_BIT
     );
 
-    depth_image.initialize(
-        &device,
-        &device_memory_manager,
+    depth_image = create_image(
         VkExtent3D{ window.extent.width, window.extent.height, 1 },
         VK_FORMAT_D32_SFLOAT,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -243,3 +239,71 @@ Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
 
     return new_buffer;
 }
+
+AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
+    VmaMemoryUsage memory_usage, VkMemoryAllocateFlags vk_memory_usage,
+    VkImageAspectFlags aspect_flags) {
+
+    AllocatedImage new_image;
+
+    new_image.renderer              = this;
+    new_image.usage_flags           = usage_flags;
+    new_image.vma_memory_usage      = memory_usage;
+    new_image.vk_memory_usage       = vk_memory_usage;
+    new_image.aspect_flags          = aspect_flags;
+    new_image.extent                = extent;
+    new_image.format                = format;
+    new_image.layout                = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	VkImageCreateInfo image_info{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.pNext = nullptr,
+		.imageType = VK_IMAGE_TYPE_2D, // Need to change this if I need 3D images
+		.format = format,
+		.extent = extent,
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT, // Only applicable for target images
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = usage_flags
+	};
+
+	VmaAllocationCreateInfo alloc_info{
+		.usage = new_image.vma_memory_usage,
+		.requiredFlags = static_cast<VkMemoryPropertyFlags>(vk_memory_usage)
+	};
+
+	if (vmaCreateImage(device_memory_manager.allocator, &image_info, &alloc_info, &new_image.handle, &new_image.allocation, nullptr) != VK_SUCCESS) {
+        Logger::logError("Failed to create and allocate image!");
+	}
+    // vmaSetAllocationName(device_memory_manager->allocator, allocation, "AllocatedImage");
+
+	VkImageSubresourceRange subresource_range{
+		.aspectMask = new_image.aspect_flags,
+		.baseMipLevel = 0,
+		.levelCount = 1,
+		.baseArrayLayer = 0,
+		.layerCount = 1
+	};
+
+	VkImageViewCreateInfo image_view_info{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.pNext = nullptr,
+		.image = new_image.handle,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = format,
+		.subresourceRange = subresource_range
+	};
+
+	if (vkCreateImageView(device.logical_device, &image_view_info, nullptr, &new_image.view) != VK_SUCCESS) {
+        Logger::logError("Failed to create allocated image view!");
+	}
+
+    return new_image;
+}
+
+
+
+
+
+
