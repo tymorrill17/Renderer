@@ -43,9 +43,22 @@ public:
     );
 
     AllocatedImage create_image(
-		VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
-		VmaMemoryUsage memory_usage, VkMemoryAllocateFlags vk_memory_usage,
-		VkImageAspectFlags aspect_flags
+		VkExtent3D extent,
+        VkFormat format,
+        VkImageUsageFlags usage_flags,
+		VmaMemoryUsage vma_memory_usage,
+        VkMemoryAllocateFlags vk_memory_usage,
+        bool use_mipmap = false
+    );
+
+    AllocatedImage create_image(
+        void* image_data,
+		VkExtent3D extent,
+        VkFormat format,
+        VkImageUsageFlags usage_flags,
+		VmaMemoryUsage vma_memory_usage,
+        VkMemoryAllocateFlags vk_memory_usage,
+        bool use_mipmap = false
     );
 
     static VkRenderingInfoKHR rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info);

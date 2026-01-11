@@ -21,7 +21,7 @@ struct SwapchainSupportDetails {
 
 class Swapchain {
 public:
-    void initialize(Device* device, Window* window);
+    void initialize(Renderer* renderer, Window* window);
     void create_swapchain();
     void cleanup();
 
@@ -37,7 +37,7 @@ public:
     static VkSurfaceFormatKHR select_swapchain_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
     static VkPresentModeKHR select_swapchain_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes);
 
-    Device* device;
+    Renderer* renderer;
     Window* window;
 
     VkSwapchainKHR handle;

@@ -35,7 +35,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     debug_messenger.initialize(&instance);
     device.initialize(&instance, &window, renderer_info->validation_layers, renderer_info->device_extensions);
     device_memory_manager.initialize(&device, &instance);
-    swapchain.initialize(&device, &window);
+    swapchain.initialize(this, &window);
     frames_in_flight = swapchain.frames_in_flight;
     pipeline_builder.initialize(&device);
 
@@ -51,8 +51,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
         swapchain.image_format,
 		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		VMA_MEMORY_USAGE_GPU_ONLY,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
     depth_image = create_image(
@@ -60,8 +59,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
         VK_FORMAT_D32_SFLOAT,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		VMA_MEMORY_USAGE_GPU_ONLY,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        VK_IMAGE_ASPECT_DEPTH_BIT
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
     command_pool.initialize(&device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
@@ -241,19 +239,20 @@ Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
 }
 
 AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
-    VmaMemoryUsage memory_usage, VkMemoryAllocateFlags vk_memory_usage,
-    VkImageAspectFlags aspect_flags) {
+    VmaMemoryUsage vma_memory_usage, VkMemoryAllocateFlags vk_memory_usage,
+    bool use_mipmap) {
 
     AllocatedImage new_image;
 
     new_image.renderer              = this;
     new_image.usage_flags           = usage_flags;
-    new_image.vma_memory_usage      = memory_usage;
+    new_image.vma_memory_usage      = vma_memory_usage;
     new_image.vk_memory_usage       = vk_memory_usage;
-    new_image.aspect_flags          = aspect_flags;
+    new_image.aspect_flags          = format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
     new_image.extent                = extent;
     new_image.format                = format;
     new_image.layout                = VK_IMAGE_LAYOUT_UNDEFINED;
+    new_image.mip_level_count       = use_mipmap ? static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height)))) + 1 : 1;
 
 	VkImageCreateInfo image_info{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -261,7 +260,7 @@ AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImag
 		.imageType = VK_IMAGE_TYPE_2D, // Need to change this if I need 3D images
 		.format = format,
 		.extent = extent,
-		.mipLevels = 1,
+        .mipLevels = new_image.mip_level_count,
 		.arrayLayers = 1,
 		.samples = VK_SAMPLE_COUNT_1_BIT, // Only applicable for target images
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
@@ -269,11 +268,12 @@ AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImag
 	};
 
 	VmaAllocationCreateInfo alloc_info{
-		.usage = new_image.vma_memory_usage,
+		.usage = vma_memory_usage,
 		.requiredFlags = static_cast<VkMemoryPropertyFlags>(vk_memory_usage)
 	};
 
 	if (vmaCreateImage(device_memory_manager.allocator, &image_info, &alloc_info, &new_image.handle, &new_image.allocation, nullptr) != VK_SUCCESS) {
+
         Logger::logError("Failed to create and allocate image!");
 	}
     // vmaSetAllocationName(device_memory_manager->allocator, allocation, "AllocatedImage");
@@ -281,7 +281,7 @@ AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImag
 	VkImageSubresourceRange subresource_range{
 		.aspectMask = new_image.aspect_flags,
 		.baseMipLevel = 0,
-		.levelCount = 1,
+		.levelCount = new_image.mip_level_count,
 		.baseArrayLayer = 0,
 		.layerCount = 1
 	};

@@ -119,27 +119,29 @@ void AllocatedImage::cleanup() {
 }
 
 void AllocatedImage::recreate(VkExtent3D extent) {
+    bool use_mipmaps = this->mip_level_count > 1;
 	cleanup();
-    *this = std::move(renderer->create_image(extent, this->format, this->usage_flags, this->vma_memory_usage, this->vk_memory_usage, this->aspect_flags));
+    *this = std::move(renderer->create_image(extent, this->format, this->usage_flags, this->vma_memory_usage, this->vk_memory_usage, use_mipmaps));
     this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
 // SwapchainImage --------------------------------------------------------------------------------------------------
 
-void SwapchainImage::initialize(Device* device, VkImage image, VkExtent3D extent, VkFormat format) {
+void SwapchainImage::initialize(Renderer* renderer, VkImage image, VkExtent3D extent, VkFormat format) {
 
-    this->device = device;
+    this->renderer = renderer;
     this->handle = image;
     this->extent = extent;
     this->format = format;
     this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
     this->aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+    this->mip_level_count = 1;
 
 	// Create associated image view. This is going to be a color aspect image view
 	VkImageSubresourceRange subresource_range{
 		.aspectMask = this->aspect_flags,
 		.baseMipLevel = 0,
-		.levelCount = 1,
+		.levelCount = mip_level_count,
 		.baseArrayLayer = 0,
 		.layerCount = 1
 	};
@@ -153,13 +155,13 @@ void SwapchainImage::initialize(Device* device, VkImage image, VkExtent3D extent
 		.subresourceRange = subresource_range
 	};
 
-	if (vkCreateImageView(device->logical_device, &image_view_info, nullptr, &view) != VK_SUCCESS) {
+	if (vkCreateImageView(renderer->device.logical_device, &image_view_info, nullptr, &view) != VK_SUCCESS) {
         Logger::logError("Failed to create swapchain image view!");
 	}
 }
 
 void SwapchainImage::cleanup() {
-	vkDestroyImageView(device->logical_device, view, nullptr);
+	vkDestroyImageView(renderer->device.logical_device, view, nullptr);
 }
 
 

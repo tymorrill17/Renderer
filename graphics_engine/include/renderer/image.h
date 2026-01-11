@@ -5,6 +5,7 @@
 #include "renderer/command.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
+#include <cstdint>
 
 class Renderer;
 
@@ -17,6 +18,9 @@ public:
     VkExtent3D extent;
     VkFormat format;
 	VkImageAspectFlags aspect_flags;
+    uint32_t mip_level_count;
+
+    Renderer* renderer;
 };
 
 namespace Image {
@@ -32,7 +36,6 @@ public:
     void cleanup();
     void recreate(VkExtent3D extent);
 
-    Renderer* renderer;
     VmaAllocation allocation;
 
 	VkImageUsageFlags usage_flags;
@@ -42,8 +45,6 @@ public:
 
 class SwapchainImage : public ImageType {
 public:
-    void initialize(Device* device, VkImage image, VkExtent3D extent, VkFormat format);
+    void initialize(Renderer* renderer, VkImage image, VkExtent3D extent, VkFormat format);
     void cleanup();
-
-    Device* device;
 };

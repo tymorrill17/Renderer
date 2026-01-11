@@ -1,11 +1,12 @@
 #include "renderer/swapchain.h"
 #include "renderer/image.h"
 #include "utility/logger.h"
+#include "renderer/renderer.h"
 #include <cstdint>
 #include <stdexcept>
 
-void Swapchain::initialize(Device* device, Window* window) {
-    this->device = device;
+void Swapchain::initialize(Renderer* renderer, Window* window) {
+    this->renderer = renderer;
     this->window = window;
     window_resized = false;
     image_index = 0;
@@ -15,7 +16,7 @@ void Swapchain::initialize(Device* device, Window* window) {
 void Swapchain::create_swapchain() {
 
 	// Query swapchain support details
-	SwapchainSupportDetails support_details = query_swapchain_support(device->physical_device, device->window_surface);
+	SwapchainSupportDetails support_details = query_swapchain_support(renderer->device.physical_device, renderer->device.window_surface);
 
     bool physical_device_adequate = !support_details.formats.empty() && !support_details.present_modes.empty();
     if (!physical_device_adequate) {
@@ -36,7 +37,7 @@ void Swapchain::create_swapchain() {
 
 	VkSwapchainCreateInfoKHR swapchain_create_info{
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-		.surface = device->window_surface,
+		.surface = renderer->device.window_surface,
 		.minImageCount = frames_in_flight,
 		.imageFormat = image_format,
 		.imageColorSpace = surface_format.colorSpace,
@@ -50,7 +51,7 @@ void Swapchain::create_swapchain() {
 	};
 
     // Get graphics and present queue indices
-	const QueueFamilyIndices indices = device->queue_indices;
+	const QueueFamilyIndices indices = renderer->device.queue_indices;
 	uint32_t queue_family_indices[] = { indices.graphics_family.value(), indices.present_family.value() };
 
     // Determine how to handle images across queue families
@@ -68,28 +69,28 @@ void Swapchain::create_swapchain() {
 		swapchain_create_info.pQueueFamilyIndices = nullptr;
 	}
 
-	if (vkCreateSwapchainKHR(device->logical_device, &swapchain_create_info, nullptr, &handle) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(renderer->device.logical_device, &swapchain_create_info, nullptr, &handle) != VK_SUCCESS) {
         Logger::logError("Failed to create swapchain!");
 	}
 
 	// Get the new swapchain's images
     std::vector<VkImage> new_images;
-	vkGetSwapchainImagesKHR(device->logical_device, handle, &frames_in_flight, nullptr);
+	vkGetSwapchainImagesKHR(renderer->device.logical_device, handle, &frames_in_flight, nullptr);
 	new_images.resize(frames_in_flight);
-	vkGetSwapchainImagesKHR(device->logical_device, handle, &frames_in_flight, new_images.data());
+	vkGetSwapchainImagesKHR(renderer->device.logical_device, handle, &frames_in_flight, new_images.data());
 
 	// Now fill the images vector, which creates the image views through the Image constructor
 	images.reserve(frames_in_flight);
 	VkExtent3D swapchain_image_extent{ extent.width, extent.height, 1 };
 	for (auto image : new_images) {
         SwapchainImage temp_image;
-        temp_image.initialize(device, image, swapchain_image_extent, image_format);
+        temp_image.initialize(renderer, image, swapchain_image_extent, image_format);
 		images.push_back(temp_image);
 	}
 }
 
 void Swapchain::cleanup() {
-	vkDestroySwapchainKHR(device->logical_device, handle, nullptr);
+	vkDestroySwapchainKHR(renderer->device.logical_device, handle, nullptr);
     for (auto& image : images) {
         image.cleanup();
     }
@@ -97,14 +98,14 @@ void Swapchain::cleanup() {
 }
 
 void Swapchain::recreate() {
-    vkDeviceWaitIdle(device->logical_device);
+    vkDeviceWaitIdle(renderer->device.logical_device);
 	cleanup(); // Destroy old swapchain
 	create_swapchain(); // Recreate the swapchain
     window_resized = false;
 }
 
 void Swapchain::acquire_next_image(FrameSync* sync) {
-    VkResult e = vkAcquireNextImageKHR(device->logical_device, handle, 1000000000, sync->present_semaphore.handle, nullptr, &image_index);
+    VkResult e = vkAcquireNextImageKHR(renderer->device.logical_device, handle, 1000000000, sync->present_semaphore.handle, nullptr, &image_index);
     if (e == VK_ERROR_OUT_OF_DATE_KHR) { // This is a point of entry for the information that the window has been resized.
         window_resized = true;
     } else if (e != VK_SUCCESS) {
