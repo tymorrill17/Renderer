@@ -111,6 +111,7 @@ int main (int argc, char *argv[]) {
     // Main loop
     while (!renderer.window.window_should_close) {
         input_manager.process_inputs();
+        renderer.resize_callback();
 
         gui.start_frame();
         gui.add_widget("Camera", [&](){
@@ -146,7 +147,6 @@ int main (int argc, char *argv[]) {
         renderer.draw();
 
         gui.end_frame();
-        renderer.resize_callback();
     }
 
     renderer.wait_for_idle();

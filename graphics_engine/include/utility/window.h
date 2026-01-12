@@ -15,6 +15,8 @@ public:
     void cleanup();
     void update_after_resize();
 
+    void set_fullscreen(bool state);
+
     static void get_required_instance_extensions(std::vector<const char*>* extensions);
 
 	struct SDL_Window* sdl_window;
@@ -24,4 +26,5 @@ public:
     bool window_should_close;
     bool pause_rendering;
     bool fullscreen;
+    bool resized;
 };

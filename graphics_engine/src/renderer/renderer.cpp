@@ -196,7 +196,7 @@ void Renderer::draw() {
 }
 
 void Renderer::resize_callback() {
-	if (swapchain.window_resized) {
+	if (window.resized) {
         window.update_after_resize();
 		swapchain.recreate();
 		draw_image.recreate({ window.extent.width, window.extent.height, 1 });

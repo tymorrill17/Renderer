@@ -2,13 +2,13 @@
 #include "renderer/image.h"
 #include "utility/logger.h"
 #include "renderer/renderer.h"
+#include <vulkan/vk_enum_string_helper.h>
 #include <cstdint>
 #include <stdexcept>
 
 void Swapchain::initialize(Renderer* renderer, Window* window) {
     this->renderer = renderer;
     this->window = window;
-    window_resized = false;
     image_index = 0;
     create_swapchain();
 }
@@ -101,14 +101,15 @@ void Swapchain::recreate() {
     vkDeviceWaitIdle(renderer->device.logical_device);
 	cleanup(); // Destroy old swapchain
 	create_swapchain(); // Recreate the swapchain
-    window_resized = false;
+    window->resized = false;
 }
 
 void Swapchain::acquire_next_image(FrameSync* sync) {
     VkResult e = vkAcquireNextImageKHR(renderer->device.logical_device, handle, 1000000000, sync->present_semaphore.handle, nullptr, &image_index);
     if (e == VK_ERROR_OUT_OF_DATE_KHR) { // This is a point of entry for the information that the window has been resized.
-        window_resized = true;
+        window->resized = true;
     } else if (e != VK_SUCCESS) {
+        Logger::logError(string_VkResult(e));
         Logger::logError("Failed to acquire next swapchain image!");
     }
 
@@ -127,7 +128,7 @@ void Swapchain::present_to_screen(VkQueue queue, FrameSync* sync) {
     };
     VkResult e = vkQueuePresentKHR(queue, &present_info);
     if (e == VK_ERROR_OUT_OF_DATE_KHR) { // This is a point of entry for the information that the window has been resized.
-        window_resized = true;
+        window->resized = true;
     } else if (e != VK_SUCCESS) {
         Logger::logError("Failed to present to screen!");
     }

@@ -12,6 +12,7 @@ void Window::initialize(uint32_t width, uint32_t height, const std::string& name
 
     window_should_close = false;
     fullscreen = false;
+    resized = false;
     pause_rendering = false;
 
     aspect_ratio = float(extent.width) / float(extent.height);
@@ -20,7 +21,7 @@ void Window::initialize(uint32_t width, uint32_t height, const std::string& name
 	SDL_Init(SDL_INIT_VIDEO);
 
 	// Create a window compatible with Vulkan surfaces
-	SDL_WindowFlags window_flags = (SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+	SDL_WindowFlags window_flags = (SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_MOUSE_RELATIVE_MODE);
 	sdl_window = SDL_CreateWindow(
 		name.c_str(),
 		extent.width,
@@ -55,3 +56,8 @@ void Window::update_after_resize() {
     aspect_ratio = float(extent.width) / float(extent.height);
 }
 
+void Window::set_fullscreen(bool state) {
+    SDL_SetWindowFullscreen(sdl_window, state);
+    fullscreen = state;
+    resized = true;
+}

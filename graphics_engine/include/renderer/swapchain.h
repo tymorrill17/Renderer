@@ -43,7 +43,6 @@ public:
     VkSwapchainKHR handle;
     std::vector<SwapchainImage> images;
     uint32_t image_index;
-    bool window_resized;
 
     VkFormat image_format;
     VkExtent2D extent;

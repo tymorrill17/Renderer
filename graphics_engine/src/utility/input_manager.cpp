@@ -46,18 +46,16 @@ void InputManager::process_inputs() {
             break;
         case SDL_EVENT_WINDOW_RESTORED:
             window->pause_rendering = false;
+            window->resized = true;
+            break;
+        case SDL_EVENT_WINDOW_MAXIMIZED:
+            window->resized = true;
             break;
 		case SDL_EVENT_KEY_DOWN:
 			switch (sdl_event.key.key) {
 			case SDLK_F11:
-				if (window->fullscreen) {
-					SDL_SetWindowFullscreen(window->sdl_window, false);
-                    window->fullscreen = false;
-				}
-				else {
-					SDL_SetWindowFullscreen(window->sdl_window, true);
-                    window->fullscreen = true;
-				}
+                // Toggle fullscreen
+                window->fullscreen ? window->set_fullscreen(false) : window->set_fullscreen(true);
 				break;
 			case SDLK_SPACE:
 				dispatch_event(InputEvent::space_down);
