@@ -7,6 +7,7 @@
 #include <memory>
 
 class Device;
+class Command;
 
 class CommandPool {
 public:
@@ -14,6 +15,7 @@ public:
     void cleanup();
 
     void reset(VkCommandPoolResetFlags flags = 0U);
+    Command create_command();
 
     Device* device;
     VkCommandPool handle;
@@ -21,8 +23,6 @@ public:
 
 class Command {
 public:
-    virtual void initialize(Device* device, CommandPool* command_pool);
-
     void reset(VkCommandBufferResetFlags flags = 0U);
     void begin();
     void end();
@@ -36,13 +36,17 @@ public:
     bool in_progress;
 };
 
-class ImmediateCommand : public Command {
+class ImmediateCommand {
 public:
-    void initialize(Device* device, CommandPool* command_pool) override;
+    void initialize(Device* device);
     void cleanup();
 
-    void run_command(std::function<void(VkCommandBuffer cmd)>&& function);
+    void run_command(std::function<void(Command* immediate_command)>&& function);
 
+    Device* device;
+
+    Command command;
+    CommandPool pool;
     Fence submit_fence;
 };
 

@@ -37,7 +37,7 @@ public:
     Buffer create_buffer(
         size_t instance_bytes,
         size_t instance_count,
-        VkBufferUsageFlags vk_memory_usage,
+        VkBufferUsageFlags usage_flags,
 		VmaMemoryUsage vma_memory_usage,
         size_t minimum_offset_alignment = 1
     );

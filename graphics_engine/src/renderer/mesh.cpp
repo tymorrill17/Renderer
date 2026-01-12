@@ -44,20 +44,20 @@ void GPUMesh::upload_to_GPU(Renderer* renderer, std::span<MeshVertex> vertices, 
     staging_buffer.write_data(vertices.data(), vertex_buffer_size);
     staging_buffer.write_data(indices.data(), index_buffer_size, vertex_buffer_size);
 
-    renderer->immediate_command.run_command([&](VkCommandBuffer cmd) {
+    renderer->immediate_command.run_command([&](Command* immediate_command) {
         VkBufferCopy vertex_copy{ 0 };
         vertex_copy.dstOffset = 0;
         vertex_copy.srcOffset = 0;
         vertex_copy.size = vertex_buffer_size;
 
-        vkCmdCopyBuffer(cmd, staging_buffer.handle, this->vertex_buffer.handle, 1, &vertex_copy);
+        vkCmdCopyBuffer(immediate_command->buffer, staging_buffer.handle, this->vertex_buffer.handle, 1, &vertex_copy);
 
         VkBufferCopy index_copy{ 0 };
         index_copy.dstOffset = 0;
         index_copy.srcOffset = vertex_buffer_size;
         index_copy.size = index_buffer_size;
 
-        vkCmdCopyBuffer(cmd, staging_buffer.handle, this->index_buffer.handle, 1, &index_copy);
+        vkCmdCopyBuffer(immediate_command->buffer, staging_buffer.handle, this->index_buffer.handle, 1, &index_copy);
     });
 
     staging_buffer.unmap();

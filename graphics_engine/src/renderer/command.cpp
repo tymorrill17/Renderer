@@ -27,25 +27,29 @@ void CommandPool::reset(VkCommandPoolResetFlags flags) {
     vkResetCommandPool(device->logical_device, handle, flags);
 }
 
-// Command --------------------------------------------------------------------------------------------------
-
-void Command::initialize(Device* device, CommandPool* command_pool) {
-
-    this->device = device;
-    this->command_pool = command_pool;
-    in_progress = false;
+Command CommandPool::create_command() {
+    Command new_command{
+        .device = this->device,
+        .command_pool = this,
+        .in_progress = false,
+    };
 
 	VkCommandBufferAllocateInfo allocate_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.pNext = nullptr,
-		.commandPool = command_pool->handle,
+		.commandPool = handle,
 		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 		.commandBufferCount = 1,
 	};
-	if (vkAllocateCommandBuffers(device->logical_device, &allocate_info, &buffer) != VK_SUCCESS) {
+
+	if (vkAllocateCommandBuffers(device->logical_device, &allocate_info, &new_command.buffer) != VK_SUCCESS) {
         Logger::logError("Failed to allocate command buffer!");
 	}
+
+    return new_command;
 }
+
+// Command --------------------------------------------------------------------------------------------------
 
 VkCommandBufferBeginInfo Command::command_buffer_begin_info(VkCommandBufferUsageFlags flags) {
 	VkCommandBufferBeginInfo begin_info{
@@ -128,23 +132,26 @@ void Command::submit_to_queue(VkQueue queue, FrameSync* sync) {
 
 // ImmediateCommand --------------------------------------------------------------------------------------------------
 
-void ImmediateCommand::initialize(Device* device, CommandPool* command_pool) {
-    Command::initialize(device, command_pool);
+void ImmediateCommand::initialize(Device* device) {
+    this->device = device;
+
+    pool.initialize(device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     submit_fence.initialize(device, VK_FENCE_CREATE_SIGNALED_BIT);
+    command = pool.create_command();
 }
 
-void ImmediateCommand::run_command(std::function<void(VkCommandBuffer cmd)>&& function) {
+void ImmediateCommand::run_command(std::function<void(Command* immediate_command)>&& function) {
 	vkResetFences(device->logical_device, 1, &submit_fence.handle);
-	reset(); // Reset the command buffer
+	command.reset(); // Reset the command buffer
 
-	begin();
-	function(buffer);
-	end();
+	command.begin();
+    function(&command);
+	command.end();
 
 	VkCommandBufferSubmitInfo command_submit_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
 		.pNext = nullptr,
-		.commandBuffer = buffer,
+		.commandBuffer = command.buffer,
 		.deviceMask = 0
 	};
 	// This semaphore waits until the previous frame has been presented
@@ -168,5 +175,6 @@ void ImmediateCommand::run_command(std::function<void(VkCommandBuffer cmd)>&& fu
 
 void ImmediateCommand::cleanup() {
     submit_fence.cleanup();
+    pool.cleanup();
 }
 

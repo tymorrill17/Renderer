@@ -65,11 +65,9 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     command_pool.initialize(&device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     frame_command.reserve(frames_in_flight);
     for (int i_frame = 0; i_frame < frames_in_flight; i_frame++) {
-        Command command;
-        command.initialize(&device, &command_pool);
-        frame_command.push_back(command);
+        frame_command.push_back(std::move(command_pool.create_command()));
     }
-    immediate_command.initialize(&device, &command_pool);
+    immediate_command.initialize(&device);
 
     // TODO: we can only have 10 descriptor sets with this pool. I realize now how hard descriptor abstraction is
     descriptor_builder.initialize(this, 10, pool_sizes);
@@ -84,7 +82,6 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
 void Renderer::cleanup() {
     wait_for_idle();
 
-    // TODO: Should there be a wait for idle before destroying command pool?
     descriptor_builder.cleanup();
     command_pool.cleanup();
     immediate_command.cleanup();
@@ -205,7 +202,7 @@ void Renderer::resize_callback() {
 }
 
 Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
-    VkBufferUsageFlags vk_memory_usage, VmaMemoryUsage vma_memory_usage,
+    VkBufferUsageFlags usage_flags, VmaMemoryUsage vma_memory_usage,
     size_t minimum_offset_alignment) {
 
     Buffer new_buffer;
@@ -223,7 +220,7 @@ Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 		.pNext = nullptr,
 		.size = new_buffer.total_bytes,
-		.usage = vk_memory_usage,
+		.usage = usage_flags,
 	};
 
 	VmaAllocationCreateInfo allocation_create_info{

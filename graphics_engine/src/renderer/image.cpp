@@ -85,6 +85,37 @@ void Image::copy_image(Command* cmd, ImageType* src, ImageType* dst) {
     copy_subimage(cmd, src, src->extent, dst, dst->extent);
 }
 
+void Image::copy_data_to_image(ImageType *image, void *data) {
+
+    // TODO: is I don't like the hard-coded 4 here, I am not sure why it is there..
+    size_t data_size = image->extent.depth * image->extent.width * image->extent.height * 4;
+	Buffer upload_buffer = image->renderer->create_buffer(data_size, 1, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    upload_buffer.write_data(data);
+
+    image->renderer->immediate_command.run_command([&](Command* immediate_command) {
+        Image::transition_image(immediate_command, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		VkBufferImageCopy copy_info{
+		    .bufferOffset = 0,
+		    .bufferRowLength = 0,
+		    .bufferImageHeight = 0,
+		    .imageExtent = image->extent,
+        };
+
+        copy_info.imageSubresource.aspectMask = image->aspect_flags;
+		copy_info.imageSubresource.mipLevel = 0;
+		copy_info.imageSubresource.baseArrayLayer = 0;
+		copy_info.imageSubresource.layerCount = image->mip_level_count;
+
+		// copy the buffer into the image
+		vkCmdCopyBufferToImage(immediate_command->buffer, upload_buffer.handle, image->handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
+
+		Image::transition_image(immediate_command, image,	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    });
+
+    upload_buffer.cleanup();
+}
+
 VkRenderingAttachmentInfoKHR Image::color_attachment_info(VkImageView image_view, VkClearValue* clear_value, VkImageLayout image_layout) {
 	VkRenderingAttachmentInfoKHR rendering_attachment_info{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
