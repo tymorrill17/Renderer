@@ -1,4 +1,5 @@
 #include "renderer/renderer.h"
+#include "renderer/buffer.h"
 #include "renderer/descriptor.h"
 #include "renderer/image.h"
 #include "renderer/sync.h"
@@ -201,19 +202,11 @@ void Renderer::resize_callback() {
 	}
 }
 
-Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
-    VkBufferUsageFlags usage_flags, VmaMemoryUsage vma_memory_usage,
-    size_t minimum_offset_alignment) {
-
+Buffer Renderer::create_buffer(size_t bytes, VkBufferUsageFlags usage_flags, VmaMemoryUsage memory_usage) {
     Buffer new_buffer;
 
     new_buffer.device_memory_manager = &this->device_memory_manager;
-    new_buffer.instance_bytes = instance_bytes;
-    new_buffer.instance_count = instance_count;
-
-    new_buffer.total_bytes = instance_bytes * instance_count;
-    new_buffer.alignment = Buffer::find_alignment_size(instance_bytes, minimum_offset_alignment);
-
+    new_buffer.total_bytes = bytes;
     new_buffer.is_mapped = false;
 
 	VkBufferCreateInfo buffer_create_info{
@@ -225,12 +218,32 @@ Buffer Renderer::create_buffer(size_t instance_bytes, size_t instance_count,
 
 	VmaAllocationCreateInfo allocation_create_info{
 		.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT,
-		.usage = vma_memory_usage
+		.usage = memory_usage
 	};
 
 	if (vmaCreateBuffer(new_buffer.device_memory_manager->allocator, &buffer_create_info, &allocation_create_info, &new_buffer.handle, &new_buffer.allocation, nullptr) != VK_SUCCESS) {
         Logger::logError("Failed to create allocated buffer!");
 	}
+
+    return new_buffer;
+}
+
+Buffer Renderer::create_instanced_buffer(size_t instance_bytes, size_t instance_count,
+    VkBufferUsageFlags usage_flags, VmaMemoryUsage memory_usage,
+    size_t minimum_offset_alignment) {
+
+    InstancedBuffer new_buffer;
+    new_buffer.instance_bytes = instance_bytes;
+    new_buffer.instance_count = instance_count;
+    new_buffer.alignment = InstancedBuffer::find_alignment_size(instance_bytes, minimum_offset_alignment);
+
+    Buffer temp_buffer = create_buffer(instance_bytes * instance_count, usage_flags, memory_usage);
+
+    new_buffer.total_bytes           = temp_buffer.total_bytes;
+    new_buffer.handle                = temp_buffer.handle;
+    new_buffer.mapped_data           = temp_buffer.mapped_data;
+    new_buffer.allocation            = temp_buffer.allocation;
+    new_buffer.device_memory_manager = temp_buffer.device_memory_manager;
 
     return new_buffer;
 }

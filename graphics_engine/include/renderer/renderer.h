@@ -35,24 +35,20 @@ public:
     Renderer& add_render_system(RenderSystem* render_system);
 
     Buffer create_buffer(
+        size_t bytes,
+        VkBufferUsageFlags usage_flags,
+		VmaMemoryUsage memory_usage
+    );
+
+    Buffer create_instanced_buffer(
         size_t instance_bytes,
         size_t instance_count,
         VkBufferUsageFlags usage_flags,
-		VmaMemoryUsage vma_memory_usage,
+		VmaMemoryUsage memory_usage,
         size_t minimum_offset_alignment = 1
     );
 
     AllocatedImage create_image(
-		VkExtent3D extent,
-        VkFormat format,
-        VkImageUsageFlags usage_flags,
-		VmaMemoryUsage vma_memory_usage,
-        VkMemoryAllocateFlags vk_memory_usage,
-        bool use_mipmap = false
-    );
-
-    AllocatedImage create_image(
-        void* image_data,
 		VkExtent3D extent,
         VkFormat format,
         VkImageUsageFlags usage_flags,

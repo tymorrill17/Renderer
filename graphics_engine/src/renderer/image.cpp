@@ -89,7 +89,7 @@ void Image::copy_data_to_image(ImageType *image, void *data) {
 
     // TODO: is I don't like the hard-coded 4 here, I am not sure why it is there..
     size_t data_size = image->extent.depth * image->extent.width * image->extent.height * 4;
-	Buffer upload_buffer = image->renderer->create_buffer(data_size, 1, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Buffer upload_buffer = image->renderer->create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     upload_buffer.write_data(data);
 
     image->renderer->immediate_command.run_command([&](Command* immediate_command) {
@@ -102,6 +102,7 @@ void Image::copy_data_to_image(ImageType *image, void *data) {
 		    .imageExtent = image->extent,
         };
 
+        // Just doing the base mipmap level for now.
         copy_info.imageSubresource.aspectMask = image->aspect_flags;
 		copy_info.imageSubresource.mipLevel = 0;
 		copy_info.imageSubresource.baseArrayLayer = 0;

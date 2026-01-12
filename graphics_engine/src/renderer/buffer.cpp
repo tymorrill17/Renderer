@@ -41,16 +41,17 @@ void Buffer::write_data(void* data, size_t size, size_t offset) {
 	}
 }
 
-void Buffer::write_data_at_index(void* data, int index) {
+size_t InstancedBuffer::find_alignment_size(size_t instance_bytes, size_t minimum_offset_alignment) {
+	if (minimum_offset_alignment > 0) {
+		return (instance_bytes + minimum_offset_alignment - 1) & ~(minimum_offset_alignment - 1);
+	}
+	return instance_bytes;
+}
+
+void InstancedBuffer::write_data_at_index(void* data, int index) {
 	if (!is_mapped) {
         map();
 	}
 	write_data(data, instance_bytes, index * alignment);
 }
 
-size_t Buffer::find_alignment_size(size_t instance_bytes, size_t minimum_offset_alignment) {
-	if (minimum_offset_alignment > 0) {
-		return (instance_bytes + minimum_offset_alignment - 1) & ~(minimum_offset_alignment - 1);
-	}
-	return instance_bytes;
-}

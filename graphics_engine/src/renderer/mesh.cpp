@@ -18,7 +18,6 @@ void GPUMesh::upload_to_GPU(Renderer* renderer, std::span<MeshVertex> vertices, 
     // Create vertex buffer
     this->vertex_buffer = renderer->create_buffer(
         vertex_buffer_size,
-        1,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         VMA_MEMORY_USAGE_GPU_ONLY
     );
@@ -33,13 +32,12 @@ void GPUMesh::upload_to_GPU(Renderer* renderer, std::span<MeshVertex> vertices, 
     // Create index buffer
     this->index_buffer = renderer->create_buffer(
         index_buffer_size,
-        1,
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VMA_MEMORY_USAGE_GPU_ONLY
     );
 
     // Since we created the vertex and index buffers on GPU-only memory, we use a staging_buffer that uses CPU-only memory to copy data to the GPU buffers
-    Buffer staging_buffer = renderer->create_buffer(vertex_buffer_size + index_buffer_size, 1, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+    Buffer staging_buffer = renderer->create_buffer(vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
     staging_buffer.write_data(vertices.data(), vertex_buffer_size);
     staging_buffer.write_data(indices.data(), index_buffer_size, vertex_buffer_size);

@@ -73,7 +73,7 @@ int main (int argc, char *argv[]) {
     renderer.initialize(&renderer_info);
     input_manager.initialize(&renderer.window);
 
-    Buffer global_uniform_buffer = renderer.create_buffer(sizeof(CameraBuffer), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    Buffer global_uniform_buffer = renderer.create_buffer(sizeof(CameraBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     CameraBuffer camera_buffer{};
 
     DescriptorSet global_buffer_descriptor = renderer.descriptor_builder
