@@ -27,7 +27,7 @@ namespace Image {
     void transition_image(Command* cmd, ImageType* image, VkImageLayout new_layout);
 	void copy_image(Command* cmd, ImageType* src, ImageType* dst);
 	void copy_subimage(Command* cmd, ImageType* src, VkExtent3D src_extent, ImageType* dst, VkExtent3D dst_extent);
-    void copy_data_to_image(ImageType* image, void* data);
+    void copy_data_to_image(ImageType* image, void* data, size_t pixel_bytes);
 	VkRenderingAttachmentInfoKHR color_attachment_info(VkImageView image_view, VkClearValue* clear_value, VkImageLayout image_layout);
 	VkRenderingAttachmentInfoKHR depth_attachment_info(VkImageView image_view, VkImageLayout image_layout);
 };
@@ -40,8 +40,6 @@ public:
     VmaAllocation allocation;
 
 	VkImageUsageFlags usage_flags;
-	VmaMemoryUsage vma_memory_usage;
-	VkMemoryAllocateFlags vk_memory_usage;
 };
 
 class SwapchainImage : public ImageType {

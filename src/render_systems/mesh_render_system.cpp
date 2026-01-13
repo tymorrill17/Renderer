@@ -20,7 +20,7 @@ void MeshRenderSystem::initialize(Renderer* renderer, std::vector<DescriptorSet>
     }
 
 	Shader basic_vertex_shader;
-    basic_vertex_shader.initialize(&renderer->device, &renderer->shader_manager, VK_SHADER_STAGE_VERTEX_BIT, "vertex_main2");
+    basic_vertex_shader.initialize(&renderer->device, &renderer->shader_manager, VK_SHADER_STAGE_VERTEX_BIT, "vertex_main");
 	Shader basic_pixel_shader;
     basic_pixel_shader.initialize(&renderer->device, &renderer->shader_manager, VK_SHADER_STAGE_FRAGMENT_BIT, "pixel_main");
 
@@ -41,6 +41,7 @@ void MeshRenderSystem::initialize(Renderer* renderer, std::vector<DescriptorSet>
         .add_vertex_attribute_description(PipelineBuilder::vertex_input_attribute_description(0, 3, VK_FORMAT_R32_SFLOAT, offsetof(MeshVertex, uv_y)))
         .add_vertex_attribute_description(PipelineBuilder::vertex_input_attribute_description(0, 4, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshVertex, color)))
         .add_descriptor(descriptor_sets[0].layout)
+        .add_descriptor(descriptor_sets[1].layout)
         .set_input_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
         .set_polygon_mode(VK_POLYGON_MODE_FILL)
         .set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)

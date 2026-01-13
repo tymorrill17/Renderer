@@ -12,6 +12,7 @@ namespace Logger {
     // @brief Log error to stderr
     void logError(const std::string& errorMessage);
     void log(const std::string& message);
+    void log_VkResult(VkResult error);
 
 	// @brief Print a list of strings
 	void printList(const std::vector<const char*>* list);

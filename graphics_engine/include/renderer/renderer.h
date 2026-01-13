@@ -52,8 +52,15 @@ public:
 		VkExtent3D extent,
         VkFormat format,
         VkImageUsageFlags usage_flags,
-		VmaMemoryUsage vma_memory_usage,
-        VkMemoryAllocateFlags vk_memory_usage,
+        bool use_mipmap = false
+    );
+
+    AllocatedImage create_image_from_data(
+        void* data,
+        size_t pixel_bytes,
+		VkExtent3D extent,
+        VkFormat format,
+        VkImageUsageFlags usage_flags,
         bool use_mipmap = false
     );
 

@@ -1,4 +1,5 @@
 #include "utility/logger.h"
+#include "vulkan/vk_enum_string_helper.h"
 #include <iostream>
 #include <ostream>
 
@@ -9,6 +10,10 @@ void Logger::logError(const std::string& errorMessage) {
 
 void Logger::log(const std::string& message) {
     std::cout << message << std::endl;
+}
+
+void Logger::log_VkResult(VkResult error) {
+    std::cerr << "VkResult: " << string_VkResult(error) << std::endl;
 }
 
 void Logger::printLayers(const char* layerCategory, const std::vector<VkLayerProperties>* layers) {

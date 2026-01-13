@@ -118,7 +118,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> AssetManager::load_mesh_G
         }
 
         // Display the vertex normals instead of the actual colors
-        constexpr bool OverrideColors = true;
+        constexpr bool OverrideColors = false;
         if (OverrideColors) {
             for (MeshVertex& vertex : vertices) {
                 vertex.color = glm::vec4(vertex.normal, 1.f);

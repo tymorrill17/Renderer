@@ -2,7 +2,10 @@
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
+#include "glm/packing.hpp"
+#include "renderer/buffer.h"
 #include "renderer/image.h"
+#include <array>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/fwd.hpp"
 #include "glm/gtx/transform.hpp"
@@ -76,12 +79,55 @@ int main (int argc, char *argv[]) {
     Buffer global_uniform_buffer = renderer.create_buffer(sizeof(CameraBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     CameraBuffer camera_buffer{};
 
+    std::vector<DescriptorSet> mesh_descriptors;
+
     DescriptorSet global_buffer_descriptor = renderer.descriptor_builder
         .add_buffer(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, &global_uniform_buffer)
         .build();
+    renderer.descriptor_builder.clear();
+    mesh_descriptors.push_back(global_buffer_descriptor);
+
+    uint32_t white = glm::packUnorm4x8(glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
+    AllocatedImage white_texture = renderer.create_image_from_data(&white, sizeof(uint32_t), VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    uint32_t grey  = glm::packUnorm4x8(glm::vec4{ 0.66f, 0.66f, 0.66f, 1.0f });
+    AllocatedImage grey_texture = renderer.create_image_from_data(&grey, sizeof(uint32_t), VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    uint32_t black = glm::packUnorm4x8(glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
+    AllocatedImage black_texture = renderer.create_image_from_data(&black, sizeof(uint32_t), VkExtent3D{ 1, 1, 1 }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    const int texture_size = 16;
+    uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+    std::array<uint32_t, texture_size * texture_size> checkerboard;
+    for (int i = 0; i < texture_size; i++) {
+        for (int j = 0; j < texture_size; j++) {
+            checkerboard[i*texture_size + j] = (i % 2) ^ (j % 2) ? magenta : black;
+        }
+    }
+    AllocatedImage error_texture = renderer.create_image_from_data(&checkerboard, sizeof(uint32_t), VkExtent3D{ texture_size, texture_size, 1 }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    // TODO: Combine samplers with images to make Textures
+    VkSamplerCreateInfo sampler_info{
+        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+    };
+
+    VkSampler sampler_nearest;
+    sampler_info.minFilter = VK_FILTER_NEAREST;
+    sampler_info.magFilter = VK_FILTER_NEAREST;
+    vkCreateSampler(renderer.device.logical_device, &sampler_info, nullptr, &sampler_nearest);
+
+    VkSampler sampler_linear;
+    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.magFilter = VK_FILTER_LINEAR;
+    vkCreateSampler(renderer.device.logical_device, &sampler_info, nullptr, &sampler_linear);
+
+    DescriptorSet texture_descriptor = renderer.descriptor_builder
+        .add_image(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, &error_texture, sampler_nearest)
+        .build();
+    mesh_descriptors.push_back(texture_descriptor);
 
     MeshRenderSystem mesh_render_system;
-    mesh_render_system.initialize(&renderer, std::vector<DescriptorSet>{global_buffer_descriptor});
+    mesh_render_system.initialize(&renderer, mesh_descriptors);
     renderer.add_render_system(&mesh_render_system);
 
     static Gui& gui = Gui::get_gui();
@@ -103,10 +149,6 @@ int main (int argc, char *argv[]) {
         .ortho_scale = 5.0f,
         .rotation = 0.0f
     };
-
-//    GPUDrawPushConstants push_constants{
-//        .vertex_buffer_address = test_meshes.value()[2]->GPU_mesh.vertex_buffer_address
-//    };
 
     // Main loop
     while (!renderer.window.window_should_close) {
@@ -151,8 +193,13 @@ int main (int argc, char *argv[]) {
 
     renderer.wait_for_idle();
 
+    vkDestroySampler(renderer.device.logical_device, sampler_nearest, nullptr);
+    vkDestroySampler(renderer.device.logical_device, sampler_linear, nullptr);
     global_uniform_buffer.cleanup();
     global_buffer_descriptor.cleanup();
+    texture_descriptor.cleanup();
+    white_texture.cleanup(); grey_texture.cleanup(); black_texture.cleanup(); error_texture.cleanup();
+
     for (auto& mesh : test_meshes.value()) mesh->cleanup();
     gui.cleanup();
     mesh_render_system.cleanup();

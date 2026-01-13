@@ -4,6 +4,7 @@
 #include "renderer/image.h"
 #include "renderer/sync.h"
 #include "utility/gui.h"
+#include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
 #include <algorithm>
 #include <cstdint>
@@ -27,6 +28,7 @@ static PoolSizeRatio pool_sizes[] {
     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         100},
     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100},
     {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         100},
+    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100},
 };
 
 void Renderer::initialize(RendererCreateInfo* renderer_info) {
@@ -50,17 +52,13 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     draw_image = create_image(
         VkExtent3D{ window.extent.width, window.extent.height, 1 },
         swapchain.image_format,
-		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-		VMA_MEMORY_USAGE_GPU_ONLY,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
     );
 
     depth_image = create_image(
         VkExtent3D{ window.extent.width, window.extent.height, 1 },
         VK_FORMAT_D32_SFLOAT,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-		VMA_MEMORY_USAGE_GPU_ONLY,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
 
     command_pool.initialize(&device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
@@ -248,16 +246,12 @@ Buffer Renderer::create_instanced_buffer(size_t instance_bytes, size_t instance_
     return new_buffer;
 }
 
-AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags,
-    VmaMemoryUsage vma_memory_usage, VkMemoryAllocateFlags vk_memory_usage,
-    bool use_mipmap) {
+AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags, bool use_mipmap) {
 
     AllocatedImage new_image;
 
     new_image.renderer              = this;
     new_image.usage_flags           = usage_flags;
-    new_image.vma_memory_usage      = vma_memory_usage;
-    new_image.vk_memory_usage       = vk_memory_usage;
     new_image.aspect_flags          = format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
     new_image.extent                = extent;
     new_image.format                = format;
@@ -278,13 +272,14 @@ AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImag
 	};
 
 	VmaAllocationCreateInfo alloc_info{
-		.usage = vma_memory_usage,
-		.requiredFlags = static_cast<VkMemoryPropertyFlags>(vk_memory_usage)
+		.usage = VMA_MEMORY_USAGE_GPU_ONLY, // Images are always on GPU memory only. You will get an error if trying to allocate one on CPU memory
+		.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
 	};
 
-	if (vmaCreateImage(device_memory_manager.allocator, &image_info, &alloc_info, &new_image.handle, &new_image.allocation, nullptr) != VK_SUCCESS) {
-
+    VkResult e = vmaCreateImage(device_memory_manager.allocator, &image_info, &alloc_info, &new_image.handle, &new_image.allocation, nullptr);
+	if (e != VK_SUCCESS) {
         Logger::logError("Failed to create and allocate image!");
+        Logger::log_VkResult(e);
 	}
     // vmaSetAllocationName(device_memory_manager->allocator, allocation, "AllocatedImage");
 
@@ -308,6 +303,14 @@ AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImag
 	if (vkCreateImageView(device.logical_device, &image_view_info, nullptr, &new_image.view) != VK_SUCCESS) {
         Logger::logError("Failed to create allocated image view!");
 	}
+
+    return new_image;
+}
+
+AllocatedImage Renderer::create_image_from_data(void* data, size_t pixel_bytes, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags, bool use_mipmap) {
+
+    AllocatedImage new_image = create_image(extent, format, usage_flags | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+    Image::copy_data_to_image(&new_image, data, pixel_bytes);
 
     return new_image;
 }

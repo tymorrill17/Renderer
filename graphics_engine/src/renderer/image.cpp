@@ -85,10 +85,9 @@ void Image::copy_image(Command* cmd, ImageType* src, ImageType* dst) {
     copy_subimage(cmd, src, src->extent, dst, dst->extent);
 }
 
-void Image::copy_data_to_image(ImageType *image, void *data) {
+void Image::copy_data_to_image(ImageType *image, void *data, size_t pixel_bytes) {
 
-    // TODO: is I don't like the hard-coded 4 here, I am not sure why it is there..
-    size_t data_size = image->extent.depth * image->extent.width * image->extent.height * 4;
+    size_t data_size = image->extent.depth * image->extent.width * image->extent.height * pixel_bytes;
 	Buffer upload_buffer = image->renderer->create_buffer(data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     upload_buffer.write_data(data);
 
@@ -153,7 +152,7 @@ void AllocatedImage::cleanup() {
 void AllocatedImage::recreate(VkExtent3D extent) {
     bool use_mipmaps = this->mip_level_count > 1;
 	cleanup();
-    *this = std::move(renderer->create_image(extent, this->format, this->usage_flags, this->vma_memory_usage, this->vk_memory_usage, use_mipmaps));
+    *this = std::move(renderer->create_image(extent, this->format, this->usage_flags, use_mipmaps));
     this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
 }
 

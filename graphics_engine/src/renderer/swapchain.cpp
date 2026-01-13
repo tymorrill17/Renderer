@@ -109,8 +109,8 @@ void Swapchain::acquire_next_image(FrameSync* sync) {
     if (e == VK_ERROR_OUT_OF_DATE_KHR) { // This is a point of entry for the information that the window has been resized.
         window->resized = true;
     } else if (e != VK_SUCCESS) {
-        Logger::logError(string_VkResult(e));
         Logger::logError("Failed to acquire next swapchain image!");
+        Logger::log_VkResult(e);
     }
 
 }
