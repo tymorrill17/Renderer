@@ -189,9 +189,12 @@ void SwapchainImage::initialize(Renderer* renderer, VkImage image, VkExtent3D ex
 	if (vkCreateImageView(renderer->device.logical_device, &image_view_info, nullptr, &view) != VK_SUCCESS) {
         Logger::logError("Failed to create swapchain image view!");
 	}
+
+    this->present_semaphore.initialize(&renderer->device);
 }
 
 void SwapchainImage::cleanup() {
+    this->present_semaphore.cleanup();
 	vkDestroyImageView(renderer->device.logical_device, view, nullptr);
 }
 

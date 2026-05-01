@@ -1,14 +1,12 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-#include "utility/logger.h"
 #include "renderer/device.h"
 #include "renderer/sync.h"
 #include "renderer/image.h"
 #include "vulkan/vulkan_core.h"
 
 #include <vector>
-#include <iostream>
 
 class Window;
 
@@ -27,8 +25,8 @@ public:
 
     void check_for_window_resize(VkResult result);
     void recreate();
-    void acquire_next_image(FrameSync* sync);
-    void present_to_screen(VkQueue queue, FrameSync* sync);
+    void acquire_next_image();
+    void present_to_screen(VkQueue queue);
     SwapchainImage& current_image() { return images[image_index]; }
 
     static SwapchainSupportDetails query_swapchain_support(VkPhysicalDevice physical_device, VkSurfaceKHR surface);

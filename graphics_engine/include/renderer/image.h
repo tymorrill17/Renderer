@@ -1,4 +1,5 @@
 #pragma once
+#include "renderer/sync.h"
 #include "vulkan/vulkan.h"
 #include "vk_mem_alloc.h"
 #include "utility/allocator.h"
@@ -46,4 +47,6 @@ class SwapchainImage : public ImageType {
 public:
     void initialize(Renderer* renderer, VkImage image, VkExtent3D extent, VkFormat format);
     void cleanup();
+
+    Semaphore present_semaphore;
 };

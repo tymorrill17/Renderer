@@ -4,7 +4,6 @@
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
 #include "SDL3/SDL_vulkan.h"
-#include <iostream>
 
 static VkPhysicalDeviceFeatures device_features{};
 static VkPhysicalDeviceVulkan13Features features_13{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,

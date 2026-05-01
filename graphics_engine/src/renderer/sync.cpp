@@ -43,13 +43,11 @@ void Fence::cleanup() {
 // FRAMESYNC ----------------------------------------------------------------------------------------------------------------------
 
 void FrameSync::initialize(Device* device) {
-    present_semaphore.initialize(device);
     render_semaphore.initialize(device);
 	render_fence.initialize(device, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
 void FrameSync::cleanup() {
-    present_semaphore.cleanup();
     render_semaphore.cleanup();
     render_fence.cleanup();
 }

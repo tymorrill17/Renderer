@@ -116,7 +116,7 @@ void Renderer::draw() {
 	vkWaitForFences(device.logical_device, 1, &frame_render_fence, true, 1000000000);
 	vkResetFences(device.logical_device, 1, &frame_render_fence);
 
-	swapchain.acquire_next_image(&frame_sync[frame_index]);
+	swapchain.acquire_next_image();
 
 	Command* cmd = &frame_command[frame_index];
 	cmd->reset();
@@ -184,8 +184,8 @@ void Renderer::draw() {
     Image::transition_image(cmd, &swapchain.current_image(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 	cmd->end();
-	cmd->submit_to_queue(device.graphics_queue, &frame_sync[frame_index]);
-	swapchain.present_to_screen(device.present_queue, &frame_sync[frame_index]);
+	cmd->submit_to_queue(device.graphics_queue, &frame_sync[frame_index], &swapchain.current_image().present_semaphore);
+	swapchain.present_to_screen(device.present_queue);
 
 	frame_number++;
     frame_index = frame_number % frames_in_flight;
@@ -314,9 +314,6 @@ AllocatedImage Renderer::create_image_from_data(void* data, size_t pixel_bytes, 
 
     return new_image;
 }
-
-
-
 
 
 

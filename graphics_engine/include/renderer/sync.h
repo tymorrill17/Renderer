@@ -27,7 +27,6 @@ public:
     void initialize(Device* device);
     void cleanup();
 
-	Semaphore present_semaphore;
 	Semaphore render_semaphore;
 	Fence render_fence;
 };

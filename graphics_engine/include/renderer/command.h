@@ -26,7 +26,7 @@ public:
     void reset(VkCommandBufferResetFlags flags = 0U);
     void begin();
     void end();
-    void submit_to_queue(VkQueue queue, FrameSync* sync);
+    void submit_to_queue(VkQueue queue, FrameSync* frame_sync, Semaphore* present_semaphore);
 
     static VkCommandBufferBeginInfo command_buffer_begin_info(VkCommandBufferUsageFlags flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 

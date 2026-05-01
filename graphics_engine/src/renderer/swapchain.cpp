@@ -4,7 +4,6 @@
 #include "renderer/renderer.h"
 #include <vulkan/vk_enum_string_helper.h>
 #include <cstdint>
-#include <stdexcept>
 
 void Swapchain::initialize(Renderer* renderer, Window* window) {
     this->renderer = renderer;
@@ -104,8 +103,8 @@ void Swapchain::recreate() {
     window->resized = false;
 }
 
-void Swapchain::acquire_next_image(FrameSync* sync) {
-    VkResult e = vkAcquireNextImageKHR(renderer->device.logical_device, handle, 1000000000, sync->present_semaphore.handle, nullptr, &image_index);
+void Swapchain::acquire_next_image() {
+    VkResult e = vkAcquireNextImageKHR(renderer->device.logical_device, handle, 1000000000, current_image().present_semaphore.handle, nullptr, &image_index);
     if (e == VK_ERROR_OUT_OF_DATE_KHR) { // This is a point of entry for the information that the window has been resized.
         window->resized = true;
     } else if (e != VK_SUCCESS) {
@@ -115,8 +114,8 @@ void Swapchain::acquire_next_image(FrameSync* sync) {
 
 }
 
-void Swapchain::present_to_screen(VkQueue queue, FrameSync* sync) {
-    VkSemaphore wait_semaphore = sync->render_semaphore.handle;
+void Swapchain::present_to_screen(VkQueue queue) {
+    VkSemaphore wait_semaphore = current_image().present_semaphore.handle;
     VkPresentInfoKHR present_info{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .pNext = nullptr,

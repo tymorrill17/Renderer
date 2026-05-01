@@ -1,22 +1,11 @@
-#include "glm/ext/matrix_clip_space.hpp"
-#include "glm/ext/matrix_float4x4.hpp"
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/ext/vector_float3.hpp"
-#include "glm/packing.hpp"
 #include "renderer/buffer.h"
 #include "renderer/image.h"
 #include <array>
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/fwd.hpp"
-#include "glm/gtx/transform.hpp"
-#include "glm/gtx/string_cast.hpp"
-#include "glm/gtc/type_ptr.hpp"
 #include "imgui.h"
 #include "render_systems/mesh_render_system.h"
 #include "renderer/renderer.h"
 #include "renderer/mesh.h"
 #include "utility/camera.h"
-#include "utility/logger.h"
 #include "utility/window.h"
 #include "utility/input_manager.h"
 #include "utility/asset_loading.h"
@@ -24,6 +13,15 @@
 #include <filesystem>
 #include <string>
 #include <SDL3/SDL_main.h>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/ext/matrix_float4x4.hpp"
+#include "glm/ext/vector_float3.hpp"
+#include "glm/fwd.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtx/string_cast.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/packing.hpp"
 
 #define ENABLE_GUI
 
