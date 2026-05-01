@@ -3,6 +3,12 @@ target_link_libraries(GraphicsEngine PUBLIC Vulkan::Vulkan)
 find_package(slang REQUIRED)
 target_link_libraries(GraphicsEngine PUBLIC slang::slang)
 
+# slang package automatically looks for system install. Force cmake to use the sourced VULKAN_SDK libs
+set_target_properties(GraphicsEngine PROPERTIES
+    BUILD_RPATH "${Vulkan_LIBRARY_DIRS}"
+    INSTALL_RPATH "${Vulkan_LIBRARY_DIRS}"
+)
+
 set(VMA_GIT_REPO https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git)
 set(GLM_GIT_REPO https://github.com/g-truc/glm.git)
 set(STB_GIT_REPO https://github.com/nothings/stb.git)
