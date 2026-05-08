@@ -88,7 +88,7 @@ void Command::reset(VkCommandBufferResetFlags flags) {
 	}
 }
 
-void Command::submit_to_queue(VkQueue queue, FrameSync* frame_sync, Semaphore* present_semaphore) {
+void Command::submit_to_queue(VkQueue queue, FrameSync* frame_sync, Semaphore* render_semaphore) {
 	VkCommandBufferSubmitInfo command_submit_info{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
 		.pNext = nullptr,
@@ -99,16 +99,16 @@ void Command::submit_to_queue(VkQueue queue, FrameSync* frame_sync, Semaphore* p
 	VkSemaphoreSubmitInfo wait_semaphore_info{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 		.pNext = nullptr,
-		.semaphore = present_semaphore->handle,
+		.semaphore = frame_sync->sem_acquired_image.handle,
 		.value = 1,
 		.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
 		.deviceIndex = 0
 	};
-	// This semaphore waits until the frame is fully rendered
+	// This semaphore signals that the image is fully rendered
 	VkSemaphoreSubmitInfo signal_semaphore_info{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 		.pNext = nullptr,
-		.semaphore = frame_sync->render_semaphore.handle,
+		.semaphore = render_semaphore->handle,
 		.value = 1,
 		.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
 		.deviceIndex = 0

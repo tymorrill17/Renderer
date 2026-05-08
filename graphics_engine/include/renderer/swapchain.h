@@ -25,8 +25,8 @@ public:
 
     void check_for_window_resize(VkResult result);
     void recreate();
-    void acquire_next_image();
-    void present_to_screen(VkQueue queue);
+    void acquire_next_image(FrameSync* sync);
+    void present_to_screen(VkQueue queue, Semaphore& render_semaphore);
     SwapchainImage& current_image() { return images[image_index]; }
 
     static SwapchainSupportDetails query_swapchain_support(VkPhysicalDevice physical_device, VkSurfaceKHR surface);
@@ -39,11 +39,11 @@ public:
     Window* window;
 
     VkSwapchainKHR handle;
-    std::vector<SwapchainImage> images;
+    std::vector<SwapchainImage> images; // There may be a different number than frames_in_flight many of these
     uint32_t image_index;
 
     VkFormat image_format;
     VkExtent2D extent;
-    uint32_t frames_in_flight;
+    uint32_t n_swapchain_images;
 
 };

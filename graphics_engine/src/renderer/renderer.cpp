@@ -39,7 +39,7 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     device.initialize(&instance, &window, renderer_info->validation_layers, renderer_info->device_extensions);
     device_memory_manager.initialize(&device, &instance);
     swapchain.initialize(this, &window);
-    frames_in_flight = swapchain.frames_in_flight;
+    frames_in_flight = swapchain.n_swapchain_images;
     pipeline_builder.initialize(&device);
 
     frame_sync.reserve(frames_in_flight);
@@ -116,7 +116,7 @@ void Renderer::draw() {
 	vkWaitForFences(device.logical_device, 1, &frame_render_fence, true, 1000000000);
 	vkResetFences(device.logical_device, 1, &frame_render_fence);
 
-	swapchain.acquire_next_image();
+	swapchain.acquire_next_image(&frame_sync[frame_index]);
 
 	Command* cmd = &frame_command[frame_index];
 	cmd->reset();
@@ -184,8 +184,8 @@ void Renderer::draw() {
     Image::transition_image(cmd, &swapchain.current_image(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 	cmd->end();
-	cmd->submit_to_queue(device.graphics_queue, &frame_sync[frame_index], &swapchain.current_image().present_semaphore);
-	swapchain.present_to_screen(device.present_queue);
+	cmd->submit_to_queue(device.graphics_queue, &frame_sync[frame_index], &swapchain.current_image().render_semaphore);
+	swapchain.present_to_screen(device.present_queue, swapchain.current_image().render_semaphore);
 
 	frame_number++;
     frame_index = frame_number % frames_in_flight;

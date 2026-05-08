@@ -9,4 +9,3 @@ target_include_directories(GraphicsEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/in
 target_compile_options(GraphicsEngine PRIVATE -Wno-nullability-completeness)
 
 add_subdirectory(dependencies)
-

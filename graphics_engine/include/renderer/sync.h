@@ -27,6 +27,11 @@ public:
     void initialize(Device* device);
     void cleanup();
 
-	Semaphore render_semaphore;
+    // When this semaphore is signaled, it means we have an image from the swapchain and
+    // are ready to start drawing to it.
+	Semaphore sem_acquired_image;
+
+    // The fence is a CPU-side synchronization object. It signals the GPU that the CPU is done
+    // issuing rendering commands
 	Fence render_fence;
 };

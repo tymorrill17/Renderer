@@ -1,5 +1,6 @@
 #include "renderer/swapchain.h"
 #include "renderer/image.h"
+#include "renderer/sync.h"
 #include "utility/logger.h"
 #include "renderer/renderer.h"
 #include <vulkan/vk_enum_string_helper.h>
@@ -28,16 +29,16 @@ void Swapchain::create_swapchain() {
 
     extent = find_swapchain_extent(support_details.capabilities, window);
 	image_format = surface_format.format;
-    frames_in_flight = support_details.capabilities.minImageCount + 1; // Set how many images will be in the swapchain. Typically this will be 2.
+    n_swapchain_images = support_details.capabilities.minImageCount + 1; // Set how many images will be in the swapchain. Typically this will be 2.
 
     // Cap the frames in flight to the max swapchain image count
-	if (support_details.capabilities.maxImageCount > 0 && frames_in_flight > support_details.capabilities.maxImageCount)
-		frames_in_flight = support_details.capabilities.maxImageCount;
+	if (support_details.capabilities.maxImageCount > 0 && n_swapchain_images > support_details.capabilities.maxImageCount)
+		n_swapchain_images = support_details.capabilities.maxImageCount;
 
 	VkSwapchainCreateInfoKHR swapchain_create_info{
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 		.surface = renderer->device.window_surface,
-		.minImageCount = frames_in_flight,
+		.minImageCount = n_swapchain_images,
 		.imageFormat = image_format,
 		.imageColorSpace = surface_format.colorSpace,
 		.imageExtent = extent,
@@ -74,16 +75,16 @@ void Swapchain::create_swapchain() {
 
 	// Get the new swapchain's images
     std::vector<VkImage> new_images;
-	vkGetSwapchainImagesKHR(renderer->device.logical_device, handle, &frames_in_flight, nullptr);
-	new_images.resize(frames_in_flight);
-	vkGetSwapchainImagesKHR(renderer->device.logical_device, handle, &frames_in_flight, new_images.data());
+	vkGetSwapchainImagesKHR(renderer->device.logical_device, handle, &n_swapchain_images, nullptr);
+	new_images.resize(n_swapchain_images);
+	vkGetSwapchainImagesKHR(renderer->device.logical_device, handle, &n_swapchain_images, new_images.data());
 
 	// Now fill the images vector, which creates the image views through the Image constructor
-	images.reserve(frames_in_flight);
+	images.reserve(n_swapchain_images);
 	VkExtent3D swapchain_image_extent{ extent.width, extent.height, 1 };
-	for (auto image : new_images) {
+	for (int i_image = 0; i_image < n_swapchain_images; i_image++) {
         SwapchainImage temp_image;
-        temp_image.initialize(renderer, image, swapchain_image_extent, image_format);
+        temp_image.initialize(renderer, new_images[i_image], swapchain_image_extent, image_format);
 		images.push_back(temp_image);
 	}
 }
@@ -103,8 +104,9 @@ void Swapchain::recreate() {
     window->resized = false;
 }
 
-void Swapchain::acquire_next_image() {
-    VkResult e = vkAcquireNextImageKHR(renderer->device.logical_device, handle, 1000000000, current_image().present_semaphore.handle, nullptr, &image_index);
+void Swapchain::acquire_next_image(FrameSync* sync) {
+    // This call signals the ready-to-present semphore
+    VkResult e = vkAcquireNextImageKHR(renderer->device.logical_device, handle, 1000000000, sync->sem_acquired_image.handle, nullptr, &image_index);
     if (e == VK_ERROR_OUT_OF_DATE_KHR) { // This is a point of entry for the information that the window has been resized.
         window->resized = true;
     } else if (e != VK_SUCCESS) {
@@ -114,8 +116,9 @@ void Swapchain::acquire_next_image() {
 
 }
 
-void Swapchain::present_to_screen(VkQueue queue) {
-    VkSemaphore wait_semaphore = current_image().present_semaphore.handle;
+void Swapchain::present_to_screen(VkQueue queue, Semaphore& render_semaphore) {
+    // We are waiting on the semaphore that was signaled when the image has been fully rendered to
+    VkSemaphore wait_semaphore = render_semaphore.handle;
     VkPresentInfoKHR present_info{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .pNext = nullptr,

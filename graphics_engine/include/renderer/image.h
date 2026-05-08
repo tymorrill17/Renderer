@@ -48,5 +48,7 @@ public:
     void initialize(Renderer* renderer, VkImage image, VkExtent3D extent, VkFormat format);
     void cleanup();
 
-    Semaphore present_semaphore;
+    // When the rendering is all done, and we are ready to present, this semaphore will be signaled.
+	Semaphore render_semaphore;
+
 };

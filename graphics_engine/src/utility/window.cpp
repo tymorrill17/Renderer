@@ -3,6 +3,7 @@
 #include "utility/logger.h"
 #include <SDL3/SDL_vulkan.h>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 
 void Window::initialize(uint32_t width, uint32_t height, const std::string& name) {
@@ -16,6 +17,11 @@ void Window::initialize(uint32_t width, uint32_t height, const std::string& name
     pause_rendering = false;
 
     aspect_ratio = float(extent.width) / float(extent.height);
+
+    // For linux wayland systems, need to set this variable to fix scaling issues when using highdpi with desktop zoom
+    #ifdef __linux__
+        setenv("SDL_VIDEO_WAYLAND_SCALE_TO_DISPLAY", "1", 1);
+    #endif
 
 	// Initialize SDL
 	SDL_Init(SDL_INIT_VIDEO);
@@ -34,6 +40,9 @@ void Window::initialize(uint32_t width, uint32_t height, const std::string& name
 	} else {
         Logger::logError("Window creation failure!");
 	}
+
+    float window_scale = SDL_GetWindowDisplayScale(sdl_window);
+    Logger::log("Window Scale: " + std::to_string(window_scale));
 }
 
 void Window::cleanup() {
