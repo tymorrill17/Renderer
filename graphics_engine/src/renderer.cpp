@@ -1,0 +1,319 @@
+#include "renderer.h"
+#include "buffer.h"
+#include "descriptor.h"
+#include "image.h"
+#include "sync.h"
+#include "gui.h"
+#include "logger.h"
+#include "vulkan/vulkan_core.h"
+#include <algorithm>
+#include <cstdint>
+#include <vector>
+
+VkRenderingInfoKHR Renderer::rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info) {
+	VkRenderingInfoKHR render_info{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+		.pNext = nullptr,
+		.layerCount = 1,
+		.colorAttachmentCount = color_attachment_count,
+		.pColorAttachments = color_attachment_infos,
+		.pDepthAttachment = depth_attachment_info
+	};
+	render_info.renderArea.extent = extent;
+	render_info.renderArea.offset = { 0, 0 };
+	return render_info;
+}
+
+static PoolSizeRatio pool_sizes[] {
+    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         100},
+    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100},
+    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         100},
+    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100},
+};
+
+void Renderer::initialize(RendererCreateInfo* renderer_info) {
+
+    window.initialize(renderer_info->window_width, renderer_info->window_height, renderer_info->application_name);
+    instance.initialize(renderer_info->application_name, "GraphicsEngine", renderer_info->validation_layers, renderer_info->device_extensions);
+    debug_messenger.initialize(&instance);
+    device.initialize(&instance, &window, renderer_info->validation_layers, renderer_info->device_extensions);
+    device_memory_manager.initialize(&device, &instance);
+    swapchain.initialize(this, &window);
+    frames_in_flight = swapchain.n_swapchain_images;
+    pipeline_builder.initialize(&device);
+
+    frame_sync.reserve(frames_in_flight);
+    for (int i_frame = 0; i_frame < frames_in_flight; i_frame++) {
+        FrameSync sync;
+        sync.initialize(&device);
+        frame_sync.push_back(sync);
+    }
+
+    draw_image = create_image(
+        VkExtent3D{ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 },
+        swapchain.image_format,
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+    );
+
+    depth_image = create_image(
+        VkExtent3D{ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 },
+        VK_FORMAT_D32_SFLOAT,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+
+    command_pool.initialize(&device, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+    frame_command.reserve(frames_in_flight);
+    for (int i_frame = 0; i_frame < frames_in_flight; i_frame++) {
+        frame_command.push_back(std::move(command_pool.create_command()));
+    }
+    immediate_command.initialize(&device);
+
+    // TODO: we can only have 10 descriptor sets with this pool. I realize now how hard descriptor abstraction is
+    descriptor_builder.initialize(this, 10, pool_sizes);
+    shader_manager.initialize();
+    asset_manager.initialize(this);
+    frame_number = 0;
+    frame_index = 0;
+    render_scale = 1.0f;
+    Logger::log("Renderer Initialized!");
+}
+
+void Renderer::cleanup() {
+    wait_for_idle();
+
+    descriptor_builder.cleanup();
+    command_pool.cleanup();
+    immediate_command.cleanup();
+    draw_image.cleanup();
+    depth_image.cleanup();
+    for (int i_frame = 0; i_frame < frames_in_flight; i_frame++) {
+        frame_sync[i_frame].cleanup();
+    }
+    swapchain.cleanup();
+    device_memory_manager.cleanup();
+    device.cleanup();
+    debug_messenger.cleanup();
+    instance.cleanup();
+    window.cleanup();
+}
+
+void Renderer::wait_for_idle() {
+    vkDeviceWaitIdle(device.logical_device);
+}
+
+Renderer& Renderer::add_render_system(RenderSystem* render_system) {
+	render_systems.push_back(render_system);
+	return *this;
+}
+
+void Renderer::draw() {
+
+    if (window.pause_rendering){
+        return;
+    }
+
+	VkFence frame_render_fence = frame_sync[frame_index].render_fence.handle;
+	vkWaitForFences(device.logical_device, 1, &frame_render_fence, true, 1000000000);
+	vkResetFences(device.logical_device, 1, &frame_render_fence);
+
+	swapchain.acquire_next_image(&frame_sync[frame_index]);
+
+	Command* cmd = &frame_command[frame_index];
+	cmd->reset();
+	cmd->begin();
+
+	// Transition the draw image to a writable format
+    Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_GENERAL);
+    Image::transition_image(cmd, &depth_image, VK_IMAGE_LAYOUT_GENERAL);
+
+	VkClearValue clear_value{ .color{ 0.0f, 0.0f, 0.0f, 1.0f } };
+	VkRenderingAttachmentInfoKHR color_attachment_info = Image::color_attachment_info(draw_image.view, &clear_value, VK_IMAGE_LAYOUT_GENERAL);
+	VkRenderingAttachmentInfoKHR depth_attachment_info = Image::depth_attachment_info(depth_image.view, VK_IMAGE_LAYOUT_GENERAL);
+
+    VkExtent2D draw_extent{
+        .width  = static_cast<uint32_t>(std::min(draw_image.extent.width, swapchain.extent.width) * render_scale),
+        .height = static_cast<uint32_t>(std::min(draw_image.extent.height, swapchain.extent.height) * render_scale),
+    };
+
+	VkRenderingInfoKHR render_info = rendering_info(draw_extent, 1, &color_attachment_info, &depth_attachment_info);
+
+	VkViewport viewport{
+		.x = 0.0f,
+		.y = 0.0f,
+		.width = static_cast<float>(draw_extent.width),
+		.height = static_cast<float>(draw_extent.height),
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f
+	};
+
+	VkRect2D scissor{
+		.offset = {0, 0},
+		.extent = draw_extent
+	};
+
+	vkCmdBeginRendering(cmd->buffer, &render_info);
+
+	vkCmdSetViewport(cmd->buffer, 0, 1, &viewport);
+	vkCmdSetScissor(cmd->buffer, 0, 1, &scissor);
+
+	// Call render() for each RenderSystem. Note that the order in which these systems are called matters.
+	for (auto* render_system : render_systems) {
+		render_system->render(cmd);
+	}
+
+	vkCmdEndRendering(cmd->buffer);
+
+	// Transition images for copying and then presenting
+	// Draw image is going to be copied to the swapchain image, so transition it to a transfer source layout
+    Image::transition_image(cmd, &draw_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+	// Swapchain image needs to be transitioned to a transfer destination layout
+    Image::transition_image(cmd, &swapchain.current_image(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+	Image::copy_subimage(
+        cmd,
+        &draw_image,
+        VkExtent3D{draw_extent.width, draw_extent.height, 1},
+        &swapchain.current_image(),
+        swapchain.current_image().extent
+    );
+
+    static Gui& gui = Gui::get_gui();
+    gui.draw(cmd);
+
+	// Transition swapchain image to a presentation-ready layout
+    Image::transition_image(cmd, &swapchain.current_image(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+	cmd->end();
+	cmd->submit_to_queue(device.graphics_queue, &frame_sync[frame_index], &swapchain.current_image().render_semaphore);
+	swapchain.present_to_screen(device.present_queue, swapchain.current_image().render_semaphore);
+
+	frame_number++;
+    frame_index = frame_number % frames_in_flight;
+}
+
+void Renderer::resize_callback() {
+	if (window.resized) {
+        window.update_window_info();
+		swapchain.recreate();
+		draw_image.recreate({ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 });
+		depth_image.recreate({ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 });
+	}
+}
+
+Buffer Renderer::create_buffer(size_t bytes, VkBufferUsageFlags usage_flags, VmaMemoryUsage memory_usage) {
+    Buffer new_buffer;
+
+    new_buffer.device_memory_manager = &this->device_memory_manager;
+    new_buffer.total_bytes = bytes;
+    new_buffer.is_mapped = false;
+
+	VkBufferCreateInfo buffer_create_info{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.pNext = nullptr,
+		.size = new_buffer.total_bytes,
+		.usage = usage_flags,
+	};
+
+	VmaAllocationCreateInfo allocation_create_info{
+		.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT,
+		.usage = memory_usage
+	};
+
+	if (vmaCreateBuffer(new_buffer.device_memory_manager->allocator, &buffer_create_info, &allocation_create_info, &new_buffer.handle, &new_buffer.allocation, nullptr) != VK_SUCCESS) {
+        Logger::logError("Failed to create allocated buffer!");
+	}
+
+    return new_buffer;
+}
+
+Buffer Renderer::create_instanced_buffer(size_t instance_bytes, size_t instance_count,
+    VkBufferUsageFlags usage_flags, VmaMemoryUsage memory_usage,
+    size_t minimum_offset_alignment) {
+
+    InstancedBuffer new_buffer;
+    new_buffer.instance_bytes = instance_bytes;
+    new_buffer.instance_count = instance_count;
+    new_buffer.alignment = InstancedBuffer::find_alignment_size(instance_bytes, minimum_offset_alignment);
+
+    Buffer temp_buffer = create_buffer(instance_bytes * instance_count, usage_flags, memory_usage);
+
+    new_buffer.total_bytes           = temp_buffer.total_bytes;
+    new_buffer.handle                = temp_buffer.handle;
+    new_buffer.mapped_data           = temp_buffer.mapped_data;
+    new_buffer.allocation            = temp_buffer.allocation;
+    new_buffer.device_memory_manager = temp_buffer.device_memory_manager;
+
+    return new_buffer;
+}
+
+AllocatedImage Renderer::create_image(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags, bool use_mipmap) {
+
+    AllocatedImage new_image;
+
+    new_image.renderer              = this;
+    new_image.usage_flags           = usage_flags;
+    new_image.aspect_flags          = format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+    new_image.extent                = extent;
+    new_image.format                = format;
+    new_image.layout                = VK_IMAGE_LAYOUT_UNDEFINED;
+    new_image.mip_level_count       = use_mipmap ? static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height)))) + 1 : 1;
+
+	VkImageCreateInfo image_info{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.pNext = nullptr,
+		.imageType = VK_IMAGE_TYPE_2D, // Need to change this if I need 3D images
+		.format = format,
+		.extent = extent,
+        .mipLevels = new_image.mip_level_count,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT, // Only applicable for target images
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = usage_flags
+	};
+
+	VmaAllocationCreateInfo alloc_info{
+		.usage = VMA_MEMORY_USAGE_GPU_ONLY, // Images are always on GPU memory only. You will get an error if trying to allocate one on CPU memory
+		.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+	};
+
+    VkResult e = vmaCreateImage(device_memory_manager.allocator, &image_info, &alloc_info, &new_image.handle, &new_image.allocation, nullptr);
+	if (e != VK_SUCCESS) {
+        Logger::logError("Failed to create and allocate image!");
+        Logger::log_VkResult(e);
+	}
+    // vmaSetAllocationName(device_memory_manager->allocator, allocation, "AllocatedImage");
+
+	VkImageSubresourceRange subresource_range{
+		.aspectMask = new_image.aspect_flags,
+		.baseMipLevel = 0,
+		.levelCount = new_image.mip_level_count,
+		.baseArrayLayer = 0,
+		.layerCount = 1
+	};
+
+	VkImageViewCreateInfo image_view_info{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.pNext = nullptr,
+		.image = new_image.handle,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = format,
+		.subresourceRange = subresource_range
+	};
+
+	if (vkCreateImageView(device.logical_device, &image_view_info, nullptr, &new_image.view) != VK_SUCCESS) {
+        Logger::logError("Failed to create allocated image view!");
+	}
+
+    return new_image;
+}
+
+AllocatedImage Renderer::create_image_from_data(void* data, size_t pixel_bytes, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags, bool use_mipmap) {
+
+    AllocatedImage new_image = create_image(extent, format, usage_flags | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+    Image::copy_data_to_image(&new_image, data, pixel_bytes);
+
+    return new_image;
+}
+
+
+
