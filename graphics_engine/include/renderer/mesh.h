@@ -22,7 +22,7 @@ struct GPUDrawPushConstants {
     VkDeviceAddress vertex_buffer_address;
 };
 
-class GPUMesh {
+class GPUMeshBuffer {
 public:
     Buffer vertex_buffer;
     size_t vertex_count; // How many vertices

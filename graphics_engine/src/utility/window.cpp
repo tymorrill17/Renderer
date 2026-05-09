@@ -19,6 +19,9 @@ void Window::initialize(uint32_t width, uint32_t height, const std::string& name
     aspect_ratio = float(extent.width) / float(extent.height);
 
     // For linux wayland systems, need to set this variable to fix scaling issues when using highdpi with desktop zoom
+    // TODO: There's still an issue with the scaling. I think the resizing is broken and the scale gets messed up
+    //       with toggling fullscreen. These two issues may be related.
+    // TODO: There should be some way to implement the scaling inside the code. Maybe SDL is not the way to go...
     #ifdef __linux__
         setenv("SDL_VIDEO_WAYLAND_SCALE_TO_DISPLAY", "1", 1);
     #endif
@@ -36,13 +39,17 @@ void Window::initialize(uint32_t width, uint32_t height, const std::string& name
 	);
 
 	if (sdl_window) {
-        Logger::log("Created a window titled \"" + name + "\" of size " + std::to_string(extent.width) + "by" + std::to_string(extent.height));
+        Logger::log("Created a window titled \"" + name + "\" of size " + std::to_string(extent.width) + " by " + std::to_string(extent.height));
 	} else {
         Logger::logError("Window creation failure!");
 	}
 
     float window_scale = SDL_GetWindowDisplayScale(sdl_window);
     Logger::log("Window Scale: " + std::to_string(window_scale));
+
+    int t_width, t_height;
+	SDL_GetWindowSize(sdl_window, &t_width, &t_height);
+    Logger::log(" Window Size: " + std::to_string(t_width) + " by " + std::to_string(t_height));
 }
 
 void Window::cleanup() {
@@ -63,6 +70,7 @@ void Window::update_after_resize() {
 	extent.width = width;
 	extent.height = height;
     aspect_ratio = float(extent.width) / float(extent.height);
+    Logger::log(" Window Size: " + std::to_string(width) + " by " + std::to_string(height));
 }
 
 void Window::set_fullscreen(bool state) {

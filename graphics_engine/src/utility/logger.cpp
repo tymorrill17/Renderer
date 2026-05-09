@@ -17,17 +17,22 @@ void Logger::log_VkResult(VkResult error) {
 }
 
 void Logger::printLayers(const char* layerCategory, const std::vector<VkLayerProperties>* layers) {
+    return;
+
 	std::cout << layerCategory << std::endl;
 	for (const auto& layer : *layers) {
 		std::cout << "\t" << layer.layerName << std::endl;
 	}
 }
 void Logger::printLayers(const char* layerCategory, const std::vector<const char*>* layers) {
+    return;
+
 	std::cout << layerCategory << std::endl;
 	printList(layers);
 }
 
 void Logger::printExtensions(const char* extensionCategory, const std::vector<VkExtensionProperties>* extensions) {
+    return;
 	std::cout << extensionCategory << std::endl;
 	for (const auto& extension : *extensions) {
 		std::cout << "\t" << extension.extensionName << std::endl;
@@ -35,6 +40,7 @@ void Logger::printExtensions(const char* extensionCategory, const std::vector<Vk
 }
 
 void Logger::printExtensions(const char* extensionCategory, const std::vector<const char*>* extensions) {
+    return;
 	std::cout << extensionCategory << std::endl;
 	printList(extensions);
 }

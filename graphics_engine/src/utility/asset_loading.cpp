@@ -8,7 +8,7 @@
 #include <vector>
 
 void MeshAsset::cleanup() {
-    GPU_mesh.cleanup();
+    GPU_mesh_buffers.cleanup();
 }
 
 void AssetManager::initialize(Renderer* renderer) {
@@ -74,13 +74,12 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> AssetManager::load_mesh_G
                 // Also initialize the other optional attributes
                 fastgltf::iterateAccessorWithIndex<glm::vec3>(asset.get(), vertex_pos_accessor,
                     [&](glm::vec3 pos, size_t index) {
-                        MeshVertex new_vertex;
-                        new_vertex.position = pos;
-                        new_vertex.normal = { 1, 0, 0 };
-                        new_vertex.color = glm::vec4 { 1.0f };
-                        new_vertex.uv_x = 0;
-                        new_vertex.uv_y = 0;
-                        vertices[initial_vertex + index] = new_vertex;
+                        size_t vert_idx = initial_vertex + index;
+                        vertices[vert_idx].position = pos;
+                        vertices[vert_idx].normal = { 1, 0, 0 };
+                        vertices[vert_idx].color = glm::vec4 { 1.0f };
+                        vertices[vert_idx].uv_x = 0;
+                        vertices[vert_idx].uv_y = 0;
                     });
             }
 
@@ -125,7 +124,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> AssetManager::load_mesh_G
             }
         }
 
-        new_mesh_asset.GPU_mesh.upload_to_GPU(renderer, vertices, indices);
+        new_mesh_asset.GPU_mesh_buffers.upload_to_GPU(renderer, vertices, indices);
 
         meshes.emplace_back(std::make_shared<MeshAsset>(std::move(new_mesh_asset)));
     }

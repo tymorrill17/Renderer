@@ -107,6 +107,7 @@ void Swapchain::recreate() {
 void Swapchain::acquire_next_image(FrameSync* sync) {
     // This call signals the ready-to-present semphore
     VkResult e = vkAcquireNextImageKHR(renderer->device.logical_device, handle, 1000000000, sync->sem_acquired_image.handle, nullptr, &image_index);
+    // TODO: potential problem for linux + wayland
     if (e == VK_ERROR_OUT_OF_DATE_KHR) { // This is a point of entry for the information that the window has been resized.
         window->resized = true;
     } else if (e != VK_SUCCESS) {

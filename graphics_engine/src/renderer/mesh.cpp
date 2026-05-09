@@ -4,7 +4,7 @@
 #include "utility/logger.h"
 #include <cmath>
 
-void GPUMesh::upload_to_GPU(Renderer* renderer, std::span<MeshVertex> vertices, std::span<uint32_t> indices)
+void GPUMeshBuffer::upload_to_GPU(Renderer* renderer, std::span<MeshVertex> vertices, std::span<uint32_t> indices)
 {
     // TODO: @Error do better error handling here
     if (renderer == nullptr) return;
@@ -62,7 +62,7 @@ void GPUMesh::upload_to_GPU(Renderer* renderer, std::span<MeshVertex> vertices, 
     staging_buffer.cleanup();
 }
 
-void GPUMesh::cleanup() {
+void GPUMeshBuffer::cleanup() {
     vertex_buffer.cleanup();
     index_buffer.cleanup();
 }

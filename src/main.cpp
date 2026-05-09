@@ -96,10 +96,12 @@ int main (int argc, char *argv[]) {
 
     const int texture_size = 16;
     uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+    std::array<uint32_t, texture_size * texture_size> pink_checkerboard;
     std::array<uint32_t, texture_size * texture_size> checkerboard;
     for (int i = 0; i < texture_size; i++) {
         for (int j = 0; j < texture_size; j++) {
-            checkerboard[i*texture_size + j] = (i % 2) ^ (j % 2) ? magenta : black;
+            pink_checkerboard[i*texture_size + j] = (i % 2) ^ (j % 2) ? magenta : black;
+            checkerboard[i*texture_size + j] = (i % 2) ^ (j % 2) ? white : black;
         }
     }
     AllocatedImage error_texture = renderer.create_image_from_data(&checkerboard, sizeof(uint32_t), VkExtent3D{ texture_size, texture_size, 1 }, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);

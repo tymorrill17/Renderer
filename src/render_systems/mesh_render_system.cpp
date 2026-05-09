@@ -74,8 +74,8 @@ void MeshRenderSystem::render(Command* cmd) {
     //if (this->push_constants) vkCmdPushConstants(cmd->buffer, simple_mesh_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), push_constants);
     for (auto renderable : this->renderables) {
         VkDeviceSize offsets{0};
-        vkCmdBindVertexBuffers(cmd->buffer, 0, 1, &renderable->GPU_mesh.vertex_buffer.handle, &offsets);
-        vkCmdBindIndexBuffer(cmd->buffer, renderable->GPU_mesh.index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers(cmd->buffer, 0, 1, &renderable->GPU_mesh_buffers.vertex_buffer.handle, &offsets);
+        vkCmdBindIndexBuffer(cmd->buffer, renderable->GPU_mesh_buffers.index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(cmd->buffer, renderable->surfaces[0].count, 1, renderable->surfaces[0].index, 0, 0);
     }
 }

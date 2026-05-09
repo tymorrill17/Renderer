@@ -20,7 +20,7 @@ public:
 
     std::string name;
     std::vector<GeometricSurface> surfaces;
-    GPUMesh GPU_mesh;
+    GPUMeshBuffer GPU_mesh_buffers;
 };
 
 class AssetManager {
