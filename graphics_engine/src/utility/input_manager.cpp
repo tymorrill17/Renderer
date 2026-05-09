@@ -1,89 +1,84 @@
 #include "utility/input_manager.h"
-#include "SDL3/SDL_events.h"
-#include "SDL3/SDL_video.h"
+#include "GLFW/glfw3.h"
+
+void input_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // Get our InputManager struct
+    InputManager* input_manager = static_cast<InputManager*>(glfwGetWindowUserPointer(window));
+
+    switch (action) {
+    case GLFW_PRESS:
+        switch (key) {
+            case GLFW_KEY_F11:
+                // Toggle fullscreen
+                input_manager->window->fullscreen ? input_manager->window->set_fullscreen(false) : input_manager->window->set_fullscreen(true);
+                break;
+            case GLFW_KEY_SPACE:
+                input_manager->dispatch_event(InputEvent::space_down);
+                break;
+            default:
+                break;
+        }
+        break;
+    case GLFW_RELEASE:
+        switch (key) {
+            default:
+                break;
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+void mouse_position_callback(GLFWwindow* window, double x_pos, double y_pos) {
+    // Get our InputManager struct
+    InputManager* input_manager = static_cast<InputManager*>(glfwGetWindowUserPointer(window));
+
+    input_manager->mouse_pos_x = x_pos;
+    input_manager->mouse_pos_y = y_pos;
+}
+
+void window_minimized_callback(GLFWwindow* window, int minimized) {
+    // Get our InputManager struct
+    InputManager* input_manager = static_cast<InputManager*>(glfwGetWindowUserPointer(window));
+
+    if (minimized) {
+        input_manager->window->pause_rendering = true;
+    } else { // Window was restored
+        input_manager->window->pause_rendering = false;
+        input_manager->window->resized = true;
+    }
+}
+
+void window_maximized_callback(GLFWwindow* window, int maximized) {
+    // Get our InputManager struct
+    InputManager* input_manager = static_cast<InputManager*>(glfwGetWindowUserPointer(window));
+
+    input_manager->window->resized = true;
+}
+
+void window_close_callback(GLFWwindow* window) {
+    // Get our InputManager struct
+    InputManager* input_manager = static_cast<InputManager*>(glfwGetWindowUserPointer(window));
+
+    input_manager->window->window_should_close = true;
+}
 
 void InputManager::initialize(Window* window) {
     this->window = window;
+
+    // Allows access to a user struct from just the glfw window handle (used for input handling)
+    glfwSetWindowUserPointer(window->glfw_window, this);
+
+    glfwSetKeyCallback(window->glfw_window, input_key_callback);
+    glfwSetCursorPosCallback(window->glfw_window, mouse_position_callback);
+    glfwSetWindowIconifyCallback(window->glfw_window, window_minimized_callback);
+    glfwSetWindowMaximizeCallback(window->glfw_window, window_maximized_callback);
+    glfwSetWindowCloseCallback(window->glfw_window, window_close_callback);
 }
 
 void InputManager::process_inputs() {
-    static Gui& gui = Gui::get_gui();
-
-	SDL_Event sdl_event;
-	while (SDL_PollEvent(&sdl_event) != 0) {
-
-        gui.process_inputs(&sdl_event);
-
-		switch (sdl_event.type) {
-	 	case SDL_EVENT_QUIT:
-			window->window_should_close = true;
-			break;
-		case SDL_EVENT_MOUSE_MOTION:
-			update_mouse_position(&sdl_event);
-			break;
-		case SDL_EVENT_MOUSE_BUTTON_DOWN:
-			switch (sdl_event.button.button) {
-			case SDL_BUTTON_LEFT:
-				dispatch_event(InputEvent::left_mouse_down);
-				break;
-			case SDL_BUTTON_RIGHT:
-				dispatch_event(InputEvent::right_mouse_down);
-				break;
-			}
-			break;
-		case SDL_EVENT_MOUSE_BUTTON_UP:
-			switch (sdl_event.button.button) {
-			case SDL_BUTTON_LEFT:
-				dispatch_event(InputEvent::left_mouse_up);
-				break;
-			case SDL_BUTTON_RIGHT:
-				dispatch_event(InputEvent::right_mouse_up);
-				break;
-			}
-			break;
-		case SDL_EVENT_WINDOW_MINIMIZED:
-            window->pause_rendering = true;
-            break;
-        case SDL_EVENT_WINDOW_RESTORED:
-            window->pause_rendering = false;
-            window->resized = true;
-            break;
-        case SDL_EVENT_WINDOW_MAXIMIZED:
-            window->resized = true;
-            break;
-		case SDL_EVENT_KEY_DOWN:
-			switch (sdl_event.key.key) {
-			case SDLK_F11:
-                // Toggle fullscreen
-                window->fullscreen ? window->set_fullscreen(false) : window->set_fullscreen(true);
-				break;
-			case SDLK_SPACE:
-				dispatch_event(InputEvent::space_down);
-				break;
-			case SDLK_RIGHT:
-				dispatch_event(InputEvent::right_arrow_down);
-				break;
-			default:
-				break;
-			}
-			break;
-		case SDL_EVENT_KEY_UP:
-			switch (sdl_event.key.key) {
-			default:
-				break;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-}
-
-void InputManager::update_mouse_position(SDL_Event* e) {
-	// Taking the mouse position from SDL, which has an origin in the top left corner, to
-	// our coordinate system which has the origin in the middle
-	mouse_position.x = (e->motion.x * 2.0f / window->extent.height) - static_cast<float>(window->extent.width) / static_cast<float>(window->extent.height);
-	mouse_position.y = (-e->motion.y * 2.0f / window->extent.height) + 1.0f;
+    glfwPollEvents();
 }
 
 void InputManager::add_listener(InputEvent input_event, std::function<void()> callback) {

@@ -1,7 +1,7 @@
 #include "renderer/instance.h"
 #include "utility/window.h"
 #include "utility/logger.h"
-#include <iostream>
+#include <cstring>
 
 void Instance::initialize(
         const std::string& app_name,

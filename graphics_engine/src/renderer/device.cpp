@@ -1,9 +1,9 @@
 #include "renderer/device.h"
-#include "SDL3/SDL_error.h"
+#include "GLFW/glfw3.h"
 #include "renderer/swapchain.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
-#include "SDL3/SDL_vulkan.h"
+#include <set>
 
 static VkPhysicalDeviceFeatures device_features{};
 static VkPhysicalDeviceVulkan13Features features_13{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
@@ -53,8 +53,7 @@ void Device::initialize(Instance* instance, Window* window, const std::vector<co
 
     // Create the surface for the passed-in window. I don't necessarily like it being here, but we are keeping window creation separate from the engine
     // and the surface needs an instance to be created
-    if (!SDL_Vulkan_CreateSurface(window->sdl_window, instance->handle, nullptr, &window_surface)) {
-        SDL_GetError();
+    if (!glfwCreateWindowSurface(instance->handle, window->glfw_window, nullptr, &window_surface)) {
         Logger::logError("Failed to create window surface!");
     }
 
@@ -114,7 +113,7 @@ void Device::initialize(Instance* instance, Window* window, const std::vector<co
 }
 
 void Device::cleanup() {
-    SDL_Vulkan_DestroySurface(instance->handle, window_surface, nullptr);
+    vkDestroySurfaceKHR(instance->handle, window_surface, nullptr);
 	vkDestroyDevice(logical_device, nullptr);
 }
 

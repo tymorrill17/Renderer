@@ -50,13 +50,13 @@ void Renderer::initialize(RendererCreateInfo* renderer_info) {
     }
 
     draw_image = create_image(
-        VkExtent3D{ window.extent.width, window.extent.height, 1 },
+        VkExtent3D{ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 },
         swapchain.image_format,
 		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
     );
 
     depth_image = create_image(
-        VkExtent3D{ window.extent.width, window.extent.height, 1 },
+        VkExtent3D{ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 },
         VK_FORMAT_D32_SFLOAT,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
@@ -193,10 +193,10 @@ void Renderer::draw() {
 
 void Renderer::resize_callback() {
 	if (window.resized) {
-        window.update_after_resize();
+        window.update_window_info();
 		swapchain.recreate();
-		draw_image.recreate({ window.extent.width, window.extent.height, 1 });
-		depth_image.recreate({ window.extent.width, window.extent.height, 1 });
+		draw_image.recreate({ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 });
+		depth_image.recreate({ window.framebuffer_extent.width, window.framebuffer_extent.height, 1 });
 	}
 }
 

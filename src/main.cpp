@@ -9,10 +9,10 @@
 #include "utility/window.h"
 #include "utility/input_manager.h"
 #include "utility/asset_loading.h"
+#include "utility/gui.h"
 #include <cstdint>
 #include <filesystem>
 #include <string>
-#include <SDL3/SDL_main.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext/matrix_float4x4.hpp"

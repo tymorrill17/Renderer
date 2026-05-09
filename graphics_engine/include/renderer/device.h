@@ -1,13 +1,10 @@
 #pragma once
 #include <vulkan/vulkan.h>
-#include "renderer/device.h"
 #include "renderer/instance.h"
 #include "utility/window.h"
 #include "vulkan/vulkan_core.h"
 #include <vector>
-#include <string>
 #include <optional>
-#include <set>
 
 class QueueFamilyIndices {
 public:

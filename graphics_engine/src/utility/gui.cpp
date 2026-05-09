@@ -1,4 +1,6 @@
 #include "utility/gui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_vulkan.h"
 #include "renderer/image.h"
 #include "renderer/renderer.h"
 #include <iostream>
@@ -23,8 +25,8 @@ void Gui::initialize(Renderer* renderer) {
 	// Initialize core structures of ImGui
 	ImGui::CreateContext();
 
-	// Initializes ImGui for SDL
-	ImGui_ImplSDL3_InitForVulkan(renderer->window.sdl_window);
+	// Initializes ImGui for glfw
+	ImGui_ImplGlfw_InitForVulkan(renderer->window.glfw_window, true);
 
 	// Initializes ImGui for Vulkan
 	VkPipelineRenderingCreateInfoKHR pipeline_rendering_info{
@@ -53,13 +55,9 @@ void Gui::initialize(Renderer* renderer) {
 
 void Gui::cleanup() {
 	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplSDL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
     descriptor_allocator.cleanup();
-}
-
-void Gui::process_inputs(SDL_Event* event) {
-	ImGui_ImplSDL3_ProcessEvent(event);
 }
 
 void Gui::add_widget(const std::string& window_name, const std::function<void()>& widget) {
@@ -81,7 +79,7 @@ void Gui::construct_windows() {
 
 void Gui::start_frame() {
 	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplSDL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
 

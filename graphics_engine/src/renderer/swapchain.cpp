@@ -169,7 +169,7 @@ VkExtent2D Swapchain::find_swapchain_extent(VkSurfaceCapabilitiesKHR capabilitie
 		return capabilities.currentExtent;
 	}
 	else { // Otherwise, the window manager allows a custom resolution
-		VkExtent2D window_extent = window->extent;
+		VkExtent2D window_extent = window->framebuffer_extent;
 
 		// Truncates the extent to within the surface capabilities
 		window_extent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, window_extent.width));

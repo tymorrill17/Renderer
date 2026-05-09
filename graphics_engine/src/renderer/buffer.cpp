@@ -1,8 +1,8 @@
 #include "renderer/buffer.h"
-#include "renderer/image.h"
 #include "utility/allocator.h"
 #include "utility/logger.h"
 #include "vulkan/vulkan_core.h"
+#include <cstring>
 
 void Buffer::cleanup() {
     if (is_mapped) unmap();

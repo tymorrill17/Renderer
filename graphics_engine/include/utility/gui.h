@@ -1,7 +1,7 @@
 #pragma once
 
 #include "imgui.h"
-#include "backends/imgui_impl_sdl3.h"
+#include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "renderer/descriptor.h"
 #include <functional>
@@ -19,7 +19,6 @@ public:
     void initialize(Renderer* renderer);
     void cleanup();
 
-	void process_inputs(SDL_Event* event);
 	void add_widget(const std::string& window_name, const std::function<void()>& widget);
 	void construct_windows();
 
