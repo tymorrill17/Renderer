@@ -64,6 +64,13 @@ void window_close_callback(GLFWwindow* window) {
     input_manager->window->window_should_close = true;
 }
 
+void window_resize_callback(GLFWwindow* window, int width, int height) {
+    // Get our InputManager struct
+    InputManager* input_manager = static_cast<InputManager*>(glfwGetWindowUserPointer(window));
+
+    input_manager->window->resized = true;
+}
+
 void InputManager::initialize(Window* window) {
     this->window = window;
 
@@ -75,6 +82,7 @@ void InputManager::initialize(Window* window) {
     glfwSetWindowIconifyCallback(window->glfw_window, window_minimized_callback);
     glfwSetWindowMaximizeCallback(window->glfw_window, window_maximized_callback);
     glfwSetWindowCloseCallback(window->glfw_window, window_close_callback);
+    glfwSetWindowSizeCallback(window->glfw_window, window_resize_callback);
 }
 
 void InputManager::process_inputs() {

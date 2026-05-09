@@ -60,17 +60,16 @@ void Window::get_required_instance_extensions(std::vector<const char*>* extensio
 
 void Window::update_window_info() {
     glfwGetWindowContentScale(glfw_window, &x_scale, &y_scale);
-    Logger::log("Window Scale: " + std::to_string(x_scale) + " by " + std::to_string(y_scale));
 
     int x, y;
     glfwGetWindowSize(glfw_window, &x, &y);
     logical_extent.width  = x;
     logical_extent.height = y;
     aspect_ratio = float(logical_extent.width) / float(logical_extent.height);
-    Logger::log(" Window Size: " + std::to_string(x) + " by " + std::to_string(y));
 
-    framebuffer_extent.width  = logical_extent.width  * x_scale;
-    framebuffer_extent.height = logical_extent.height * y_scale;
+    glfwGetFramebufferSize(glfw_window, &x, &y);
+    framebuffer_extent.width  = x; // logical_extent.width  * x_scale;
+    framebuffer_extent.height = y; // logical_extent.height * y_scale;
 
     glfwGetWindowPos(glfw_window, &x, &y);
     x_pos = x;
