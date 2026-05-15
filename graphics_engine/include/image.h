@@ -52,3 +52,7 @@ public:
 	Semaphore render_semaphore;
 
 };
+
+class CombinedImageSampler : public AllocatedImage {
+    VkSampler sampler;
+};

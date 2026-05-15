@@ -2,7 +2,6 @@
 #include "pipeline.h"
 #include "renderer.h"
 #include "mesh.h"
-#include "logger.h"
 #include <cstddef>
 
 #ifdef SHADER_DIR

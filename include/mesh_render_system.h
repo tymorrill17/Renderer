@@ -1,6 +1,5 @@
 #pragma once
 
-#include "render_system.h"
 #include "command.h"
 #include "pipeline.h"
 #include "mesh.h"
@@ -8,7 +7,7 @@
 
 class MeshAsset;
 
-class MeshRenderSystem : public RenderSystem {
+class MeshRenderSystem {
 public:
     void render(Command* cmd);
 

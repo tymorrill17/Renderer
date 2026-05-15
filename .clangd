@@ -1,5 +1,12 @@
 CompileFlags:
-  Add:
-    [-std=c++23]
-  CompilationDatabase:
-    ./build
+  CompilationDatabase: build/
+  # Remove flags clangd doesn't understand (common with some compilers)
+  Remove: [-W*, -fprofile-*, -fcoverage-*]
+
+Diagnostics:
+  # Suppress noisy warnings from system/third-party headers
+  SuppressAll: false
+  UnusedIncludes: Strict
+
+Index:
+  Background: Build  # Index project in background for better completion

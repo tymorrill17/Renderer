@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <vector>
 
+class MeshRenderSystem;
+
 VkRenderingInfoKHR Renderer::rendering_info(VkExtent2D extent, uint32_t color_attachment_count, VkRenderingAttachmentInfo* color_attachment_infos, VkRenderingAttachmentInfo* depth_attachment_info) {
 	VkRenderingInfoKHR render_info{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
@@ -101,11 +103,6 @@ void Renderer::wait_for_idle() {
     vkDeviceWaitIdle(device.logical_device);
 }
 
-Renderer& Renderer::add_render_system(RenderSystem* render_system) {
-	render_systems.push_back(render_system);
-	return *this;
-}
-
 void Renderer::draw() {
 
     if (window.pause_rendering){
@@ -157,9 +154,6 @@ void Renderer::draw() {
 	vkCmdSetScissor(cmd->buffer, 0, 1, &scissor);
 
 	// Call render() for each RenderSystem. Note that the order in which these systems are called matters.
-	for (auto* render_system : render_systems) {
-		render_system->render(cmd);
-	}
 
 	vkCmdEndRendering(cmd->buffer);
 

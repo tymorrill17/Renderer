@@ -13,7 +13,7 @@ void input_key_callback(GLFWwindow* window, int key, int scancode, int action, i
                 input_manager->window->fullscreen ? input_manager->window->set_fullscreen(false) : input_manager->window->set_fullscreen(true);
                 break;
             case GLFW_KEY_SPACE:
-                input_manager->dispatch_event(InputEvent::space_down);
+                input_manager->dispatch_event(InputEvent::KeySpaceDown);
                 break;
             default:
                 break;

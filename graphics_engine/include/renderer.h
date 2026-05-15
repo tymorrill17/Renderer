@@ -9,7 +9,6 @@
 #include "descriptor.h"
 #include "pipeline.h"
 #include "asset_loading.h"
-#include "render_system.h"
 #include "logger.h"
 #include "vulkan/vulkan_core.h"
 #include <cstdint>
@@ -32,7 +31,6 @@ public:
 
     void draw();
     void resize_callback();
-    Renderer& add_render_system(RenderSystem* render_system);
 
     Buffer create_buffer(
         size_t bytes,
@@ -81,7 +79,6 @@ public:
     ImmediateCommand immediate_command;
     DescriptorBuilder descriptor_builder;
     ShaderManager shader_manager;
-    std::vector<RenderSystem*> render_systems;
     AssetManager asset_manager;
 
     float render_scale;

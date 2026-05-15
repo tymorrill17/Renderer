@@ -8,10 +8,10 @@
 
 // Enums describing input events for ease of code reading
 enum class InputEvent {
-	left_mouse_down, left_mouse_up,
-	right_mouse_down, right_mouse_up,
-	space_down, space_up,
-	right_arrow_down, right_arrow_up
+	MouseLeftDown, MouseLeftUp,
+	MouseRightDown, MouseRightUp,
+	KeySpaceDown, KeySpaceUp,
+	KeyRightArrowDown, KeyRightArrowUp
 };
 
 class InputManager {

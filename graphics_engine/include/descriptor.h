@@ -89,6 +89,6 @@ public:
     Renderer* renderer;
     DescriptorAllocator descriptor_allocator;
     DescriptorWriter descriptor_writer;
-    DescriptorLayoutBuilder descriptor_layout_builder;;
+    DescriptorLayoutBuilder descriptor_layout_builder;
 };
 
